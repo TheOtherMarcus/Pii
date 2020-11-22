@@ -144,11 +144,14 @@ def trackFile(path, mimetype):
 		constant = row[0]
 	c.close()
 	if not constant:
+		mtime = datetime.datetime.fromtimestamp(os.path.getmtime(path)).isoformat()
 		constant = str(uuid.uuid4())
 		statements += relate([constant, "EntityE"])
+		statements += relate([constant, "IdentityES", "{} {}".format(os.path.basename(path), mtime)])		
 		statements += relate([constant, "ConstantE"])
 		statements += relate([constant, "ShaES", sha])
 		statements += relate([constant, "MimeTypeES", mimetype])
+		statements += relate([constant, "CreationTimeES", mtime])
 		statements += relate([constant, "ValueEB", sqlite3.Binary(open(path, "rb").read())])
 
 	c = conn.cursor()

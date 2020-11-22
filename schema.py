@@ -32,6 +32,7 @@ statements += pii.relate(["EntityE -- IdentityES"])
 statements += pii.relate(["FileE -- PathES"])
 
 statements += pii.relate(["ConstantE -- MimeTypeES"])
+statements += pii.relate(["ConstantE -- CreationTimeES"])
 statements += pii.relate(["ConstantE -- ValueEB"])
 statements += pii.relate(["ConstantE -- ShaES"])
 
