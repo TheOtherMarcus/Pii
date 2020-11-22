@@ -24,8 +24,11 @@
 # SOFTWARE.
 
 import pii
+import query
 
 serial = ""
+
+serial += query.presentation2serial(pii)
 
 c = pii.conn.cursor()
 c.execute("""select role.l from RoleEScnn role

@@ -35,5 +35,7 @@ statements += stmts
 statements += stmts
 (stmts, mutable, constant) = pii.trackFile("./tracker.py", "text/plain")
 statements += stmts
+(stmts, mutable, constant) = pii.trackFile("./q_files.py", "text/plain")
+statements += stmts
 
 pii.execute(statements)

@@ -28,6 +28,7 @@ import datetime
 import os
 import uuid
 import hashlib
+import json
 
 dbfile = 'pii.sqlite3'
 newdb = False
@@ -40,6 +41,9 @@ conn = sqlite3.connect('pii.sqlite3', isolation_level=None)
 
 # Set journal mode to WAL.
 conn.execute('pragma journal_mode=wal')
+
+# JSON Encoder
+jenc = json.JSONEncoder()
 
 # Mapping from designation letter to sqlite3 column type
 dbtype = {"S": "TEXT", "T": "TEXT", "B": "BLOB", "I": "INTEGER", "R": "REAL", "E": "TEXT"}
@@ -167,6 +171,64 @@ def trackFile(path, mimetype):
 		statements += relate([mutable, "ContentEE", constant])
 
 	return (statements, mutable, constant)
+
+def value2serial(t, v):
+	serial = ""
+	if t == "E":
+		serial += v
+	if t == "S":
+		serial += jenc.encode(v)
+	return serial
+
+def cursor2serial(rel, c):
+	serial = ""
+	for row in c:
+		l = None
+		r = None
+		if len(row) == 1:
+			l = rel[-1:]
+		elif len(row) == 2:
+			l = rel[-2:-1]
+			r = rel[-1:]
+		elif len(row) < 1:
+			raise PiiError(f"Too few columns: {row}")
+		elif len(row) > 2:
+			raise PiiError(f"Too many columns: {row}")
+
+		serial += value2serial(l, row[0])
+		serial += f" -- {rel}"
+		if r:
+			serial += " -- "
+			serial += value2serial(r, row[1])
+		serial += "\n"
+	return serial
+
+def entity2serial(e):
+	serial = ""
+
+	c = conn.cursor()
+	c.execute("""select role.l, role.r from RoleEScnn role
+					where role.l = ?""", (e, ))
+	serial += cursor2serial("RoleES", c)
+	c.close()
+
+	c = conn.cursor()
+	c.execute("""select lft.r from RoleEScnn role
+					left join LeftSScnn lft on (lft.l = role.r)
+					where role.l = ?""", (e, ))
+	rels = []
+	for row in c:
+		rels += [row[0]]
+	c.close()
+
+	for rel in rels:
+		c = conn.cursor()
+		c.execute(f"""select rel.l, rel.r from {rel}cnn rel
+						where rel.l = ?""", (e, ))
+		serial += cursor2serial(rel, c)
+		c.close()		
+
+	return serial
 
 if newdb:
 	# Core schema
