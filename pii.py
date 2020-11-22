@@ -118,17 +118,17 @@ def trackFile(path, mimetype):
 					left join PathEScn1 path on (file.l = path.l)
 					where path.r = ?
 					limit 1""", (path, ))
-	file = None
+	mutable = None
 	for row in c:
-		file = row[0]
+		mutable = row[0]
 	c.close()
-	if not file:
-		file = str(uuid.uuid4())
-		statements += relate([file, "EntityE"])
-		statements += relate([file, "IdentityES", os.path.basename(path)])		
-		statements += relate([file, "FileE"])
-		statements += relate([file, "PathES", path])
-		statements += relate([file, "MutableE"])
+	if not mutable:
+		mutable = str(uuid.uuid4())
+		statements += relate([mutable, "EntityE"])
+		statements += relate([mutable, "IdentityES", os.path.basename(path)])		
+		statements += relate([mutable, "FileE"])
+		statements += relate([mutable, "PathES", path])
+		statements += relate([mutable, "MutableE"])
 
 	sha = sha256sum(path)
 
@@ -155,15 +155,15 @@ def trackFile(path, mimetype):
 	c.execute("""select content.l, content.r from ContentEEcnn content 
 					where content.l = ?
 					and content.r = ?
-					limit 1""", (file, constant))
+					limit 1""", (mutable, constant))
 	content = None
 	for row in c:
 		content = row[0]
 	c.close()
 	if not content:
-		statements += relate([file, "ContentEE", constant])
+		statements += relate([mutable, "ContentEE", constant])
 
-	execute(statements)
+	return (statements, mutable, constant)
 
 if newdb:
 	# Core schema

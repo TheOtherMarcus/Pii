@@ -25,7 +25,15 @@
 
 import pii
 
-pii.trackFile("./pii.py", "text/plain")
-pii.trackFile("./schema.py", "text/plain")
-pii.trackFile("./presentation.py", "text/plain")
-pii.trackFile("./tracker.py", "text/plain")
+statements = []
+
+(stmts, mutable, constant) = pii.trackFile("./pii.py", "text/plain")
+statements += stmts
+(stmts, mutable, constant) = pii.trackFile("./schema.py", "text/plain")
+statements += stmts
+(stmts, mutable, constant) = pii.trackFile("./presentation.py", "text/plain")
+statements += stmts
+(stmts, mutable, constant) = pii.trackFile("./tracker.py", "text/plain")
+statements += stmts
+
+pii.execute(statements)

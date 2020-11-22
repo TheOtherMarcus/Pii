@@ -27,6 +27,9 @@ import pii
 
 statements = []
 
+statements += pii.relation("ShapeSS")
+statements += pii.relation("ColorSS")
+
 statements += pii.relate(["EntityE -- IdentityES"])
 
 statements += pii.relate(["FileE -- PathES"])

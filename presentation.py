@@ -27,9 +27,9 @@ import pii
 
 statements = []
 
-#statements += pii.relate(["ArtefactE", "ShapeSS", "box"], associate=False)
+statements += pii.relate(["ArtefactE", "ShapeSS", "box"])
 
-#statements += pii.relate(["VersionE", "ShapeSS", "box"], associate=False)
+statements += pii.relate(["VersionE", "ShapeSS", "box"])
 
 statements += pii.relate(["ConstantRecordE", "ShapeSS", "ellipse"])
 
