@@ -29,6 +29,11 @@ import os
 import uuid
 import hashlib
 import json
+import webbrowser
+import random
+import threading
+import http.server
+import socketserver
 
 dbfile = 'pii.sqlite3'
 newdb = False
@@ -172,12 +177,20 @@ def trackFile(path, mimetype):
 
 	return (statements, mutable, constant)
 
-def value2serial(t, v):
+def value2serial(t, v, rel, l):
 	serial = ""
 	if t == "E":
 		serial += v
 	if t == "S":
 		serial += jenc.encode(v)
+	if t == "R":
+		serial += jenc.encode(v)
+	if t == "I":
+		serial += jenc.encode(v)
+	if t == "B":
+		serial += jenc.encode(l + "/" + rel)
+	if t == "T":
+		serial += v
 	return serial
 
 def cursor2serial(rel, c):
@@ -195,11 +208,11 @@ def cursor2serial(rel, c):
 		elif len(row) > 2:
 			raise PiiError(f"Too many columns: {row}")
 
-		serial += value2serial(l, row[0])
+		serial += value2serial(l, row[0], rel, l)
 		serial += f" -- {rel}"
 		if r:
 			serial += " -- "
-			serial += value2serial(r, row[1])
+			serial += value2serial(r, row[1], rel, l)
 		serial += "\n"
 	return serial
 
@@ -228,7 +241,157 @@ def entity2serial(e):
 		serial += cursor2serial(rel, c)
 		c.close()		
 
+		c = conn.cursor()
+		c.execute(f"""select id.l, id.r from {rel}cnn rel
+						join IdentityEScnn id on (rel.r = id.l)
+						where rel.l = ?""", (e, ))
+		serial += cursor2serial("IdentityES", c)
+		c.close()		
+
 	return serial
+
+memfiles = {"/pii": """
+<!DOCTYPE html>
+<html style="height:100%%;">
+  <head>
+    <title>Product Information Index</title>
+    <script
+      type="text/javascript"
+      src="https://visjs.github.io/vis-network/standalone/umd/vis-network.min.js"
+    ></script>
+  <head/>
+  <body style="height:100%%;">
+    <div id="mynetwork" style="height:100%%;"></div>
+
+<script>
+nodes = []
+edges = []
+
+function addNode(id) {
+	var found = null;
+	for (node of nodes) {
+		if (node.id == id) {
+			found = node;
+			break;
+		}
+	}
+	if (found == null) {
+		found = {id: id, font: { size: 30 }, label: "\\n|\\n\\n", shape: "box"};
+		nodes.push(found)
+	}
+	return found;
+}
+
+function addNodeText(id, key, text) {
+	node = addNode(id);
+	rows = node.label.split("\\n");
+	rows.pop()
+	if (key == "IdentityES") {
+		rows[0] += text;
+	}
+	else if (key == "RoleES") {
+		rows[1] += text + "|";
+	}
+	else {
+		rows.push(key + ": " + text);
+	}
+	node.label = ""
+	for (row of rows) {
+		node.label += row + "\\n";
+	}
+	console.log(node.label);
+}
+
+function addEdge(id1, label, id2) {
+	edges.push({from: id1, to: id2, label: label, font: { size: 30, align: "horizontal" } });
+}
+
+function parse_relations(text) {
+	var lines = text.split("\\n");
+	for (line of lines) {
+		parts = line.split(" -- ");
+		console.log(parts)
+		if (parts.length == 3) {
+			addNode(parts[0]);
+			if (parts[2].charAt(0) == "\\"") {
+				addNodeText(parts[0], parts[1], eval(parts[2]));
+			}
+			else {
+				addNode(parts[2]);
+				addEdge(parts[0], parts[1], parts[2]);
+			}
+		}
+	}
+	// create a network
+	var container = document.getElementById("mynetwork");
+	var data = {
+		nodes: nodes,
+		edges: edges,
+	};
+	var options = {
+		physics: { barnesHut: { gravitationalConstant: -10000, avoidOverlap: 0.5, centralGravity: 5.0 } },
+		interaction: { navigationButtons: true },
+	};
+	network = new vis.Network(container, data, options);
+}
+
+function httpGetAsync(theUrl, callback)
+{
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.onreadystatechange = function() { 
+        if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+            callback(xmlHttp.responseText);
+    }
+    xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+    xmlHttp.send(null);
+}
+
+httpGetAsync('http://localhost:%d/query', parse_relations);
+
+</script>
+  </body>
+</html>
+"""}
+
+class HttpHandler(http.server.SimpleHTTPRequestHandler):
+	def do_GET(self):
+		global memfiles
+
+		if self.path in memfiles.keys():
+			self.send_response(200)
+			self.end_headers()
+			self.wfile.write(memfiles[self.path].encode())
+		else:
+			http.server.SimpleHTTPRequestHandler.do_GET(self)
+
+httpd = None
+
+def webserver(webport):
+	global httpd
+
+	httpd = socketserver.TCPServer(('', webport), HttpHandler)
+	httpd.serve_forever()
+	httpd.server_close()
+	print("webserver: closed")
+
+def serve(serial):
+	global memfiles, httpd, wss_loop
+
+	webport = random.randint(1025, 9999)
+
+	memfiles["/pii"] = memfiles["/pii"] % webport
+	memfiles["/query"] = serial
+
+	web_thread = threading.Thread(target=webserver, args=(webport, ))
+	web_thread.start()
+
+	url = f"http://localhost:{webport}/pii"
+	print(f"url: {url}")
+	webbrowser.open(url)
+
+	input()
+	print("webserver: stopping")
+	httpd.shutdown()
 
 if newdb:
 	# Core schema

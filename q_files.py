@@ -28,8 +28,6 @@ import query
 
 serial = ""
 
-serial += query.presentation2serial(pii)
-
 c = pii.conn.cursor()
 c.execute("""select role.l from RoleEScnn role
 				where role.r = 'FileE'""")
@@ -37,4 +35,4 @@ for row in c:
 	serial += pii.entity2serial(row[0])
 c.close()
 
-print(serial)
+pii.serve(serial)
