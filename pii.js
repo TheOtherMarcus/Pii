@@ -10,10 +10,21 @@ function addNode(id) {
 		}
 	}
 	if (found == null) {
-		found = {id: id, font: { size: 12 }, label: "\n|\n\n", shape: "box"};
+		found = {id: id, font: { multi: "html", size: 12 }, label: " \n\n", shape: "box"};
 		nodes.push(found)
 	}
 	return found;
+}
+
+function replaceRow(rows, key, value) {
+	for (i = 0; i < rows.length; i++) {
+		console.log(key + ":");
+		console.log(rows[i].slice(0, key.length+1));
+		if (key + ":" == rows[i].slice(0, key.length+1)) {
+			rows[i] = value;
+			break;
+		}
+	}
 }
 
 function addNodeText(id, key, text) {
@@ -21,13 +32,25 @@ function addNodeText(id, key, text) {
 	rows = node.label.split("\n");
 	rows.pop()
 	if (key == "IdentityES") {
-		rows[0] += text;
+		rows[0] += "<b>" + text + "</b>";
 	}
 	else if (key == "RoleES") {
-		rows[1] += text + "|";
+		if (node[key]) {
+			node[key].push(text.slice(0, -1));
+		}
+		else {
+			node[key] = [text.slice(0, -1)];
+			rows.push(key.slice(0, -2) + ": ")
+		}
+		value = key.slice(0, -2) + ": [ "
+		for (v of node[key]) {
+			value += v + ", "
+		}
+		value += "]"
+		replaceRow(rows, key.slice(0, -2), value)
 	}
 	else {
-		rows.push(key + ": " + text);
+		rows.push(key.slice(0, -2) + ": " + text);
 	}
 	node.label = ""
 	for (row of rows) {
@@ -37,7 +60,7 @@ function addNodeText(id, key, text) {
 }
 
 function addEdge(id1, label, id2) {
-	edges.push({from: id1, to: id2, label: label, font: { size: 12, align: "horizontal" } });
+	edges.push({from: id1, to: id2, label: label.slice(0, -2), font: { size: 12, align: "horizontal" } });
 }
 
 function parse_relations(text) {
