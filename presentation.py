@@ -29,9 +29,10 @@ statements = []
 
 statements += pii.relate(["ArtefactE", "ShapeSS", "box"])
 
-statements += pii.relate(["VersionE", "ShapeSS", "box"])
+statements += pii.relate(["VersionE", "ShapeSS", "ellipse"])
 
 statements += pii.relate(["MutableE", "ShapeSS", "box"])
-statements += pii.relate(["ConstantE", "ShapeSS", "ellipse"])
+statements += pii.relate(["ConstantE", "ShapeSS", "box"])
+statements += pii.relate(["ConstantE", "ColorSS", "grey"])
 
 pii.execute(statements)

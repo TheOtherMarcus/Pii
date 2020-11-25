@@ -272,6 +272,20 @@ def entity2serial(e):
 		rels += [row[0]]
 	c.close()
 
+	c = conn.cursor()
+	c.execute("""select role.l, color.r from ColorSScn1 color
+					join RoleEScnn role on (color.l = role.r)
+					where role.l = ?""", (e, ))
+	serial += cursor2serial("ColorES", c)
+	c.close()		
+
+	c = conn.cursor()
+	c.execute("""select role.l, shape.r from ShapeSScn1 shape
+					join RoleEScnn role on (shape.l = role.r)
+					where role.l = ?""", (e, ))
+	serial += cursor2serial("ShapeES", c)
+	c.close()		
+
 	for rel in rels:
 		# Find the relations the entity is part of
 		c = conn.cursor()
@@ -282,10 +296,26 @@ def entity2serial(e):
 
 		# Find the identity of related entities
 		c = conn.cursor()
-		c.execute(f"""select id.l, id.r from {rel} rel
+		c.execute(f"""select rel.r, id.r from {rel} rel
 						join IdentityEScnn id on (rel.r = id.l)
 						where rel.l = ?""", (e, ))
 		serial += cursor2serial("IdentityES", c)
+		c.close()		
+
+		c = conn.cursor()
+		c.execute(f"""select rel.r, color.r from ColorSScn1 color
+						join RoleEScnn role on (color.l = role.r)
+						join {rel} rel on (role.l = rel.r)
+						where rel.l = ?""", (e, ))
+		serial += cursor2serial("ColorES", c)
+		c.close()		
+
+		c = conn.cursor()
+		c.execute(f"""select rel.r, shape.r from ShapeSScn1 shape
+						join RoleEScnn role on (shape.l = role.r)
+						join {rel} rel on (role.l = rel.r)
+						where rel.l = ?""", (e, ))
+		serial += cursor2serial("ShapeES", c)
 		c.close()		
 
 	return serial

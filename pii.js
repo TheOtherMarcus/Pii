@@ -49,6 +49,12 @@ function addNodeText(id, key, text) {
 		value += "]"
 		replaceRow(rows, key.slice(0, -2), value)
 	}
+	else if (key == "ShapeES") {
+		node.shape = text
+	}
+	else if (key == "ColorES") {
+		node.color = text
+	}
 	else {
 		rows.push(key.slice(0, -2) + ": " + text);
 	}
