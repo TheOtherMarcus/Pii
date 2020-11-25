@@ -198,7 +198,22 @@ def trackFile(path, mimetype):
 	return (statements, mutable, constant)
 
 ###
-### Web access
+### Model Serialization
+
+def presentation2serial(pii):
+	serial = ""
+
+	c = pii.conn.cursor()
+	c.execute("""select color.l, color.r from ColorSScnn color""")
+	serial += pii.cursor2serial("ColorES", c)
+	c.close()
+
+	c = pii.conn.cursor()
+	c.execute("""select shape.l, shape.r from ShapeSScnn shape""")
+	serial += pii.cursor2serial("ShapeSS", c)
+	c.close()
+
+	return serial
 
 def value2serial(t, v, rel, l):
 	serial = ""
@@ -274,6 +289,9 @@ def entity2serial(e):
 		c.close()		
 
 	return serial
+
+###
+### Web application
 
 memfiles = {"/pii": """
 <!DOCTYPE html>

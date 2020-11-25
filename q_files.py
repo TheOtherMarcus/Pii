@@ -24,7 +24,6 @@
 # SOFTWARE.
 
 import pii
-import query
 
 serial = ""
 

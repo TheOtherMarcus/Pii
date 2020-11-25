@@ -29,7 +29,7 @@ statements = []
 
 (stmts, mutable, constant) = pii.trackFile("./pii.py", "text/plain")
 statements += stmts
-(stmts, mutable, constant) = pii.trackFile("./schema.py", "text/plain")
+(stmts, mutable, constant) = pii.trackFile("./model.py", "text/plain")
 statements += stmts
 (stmts, mutable, constant) = pii.trackFile("./presentation.py", "text/plain")
 statements += stmts
