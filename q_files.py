@@ -31,7 +31,7 @@ c = pii.conn.cursor()
 c.execute("""select role.l from RoleEScnn role
 				where role.r = 'FileE'""")
 for row in c:
-	serial += pii.entity2serial(row[0])
+	serial += pii.entity2serial(row[0], pii.conn)
 c.close()
 
 pii.serve(serial)

@@ -43,6 +43,7 @@ if not os.path.isfile(dbfile):
 
 # Open database in autocommit mode by setting isolation_level to None.
 conn = sqlite3.connect('pii.sqlite3', isolation_level=None)
+webconn = None # Opens in webserver thread
 
 # Set journal mode to WAL.
 conn.execute('pragma journal_mode=wal')
@@ -200,21 +201,6 @@ def trackFile(path, mimetype):
 ###
 ### Model Serialization
 
-def presentation2serial(pii):
-	serial = ""
-
-	c = pii.conn.cursor()
-	c.execute("""select color.l, color.r from ColorSScnn color""")
-	serial += pii.cursor2serial("ColorES", c)
-	c.close()
-
-	c = pii.conn.cursor()
-	c.execute("""select shape.l, shape.r from ShapeSScnn shape""")
-	serial += pii.cursor2serial("ShapeSS", c)
-	c.close()
-
-	return serial
-
 def value2serial(t, v, rel, l):
 	serial = ""
 	if t == "E":
@@ -226,7 +212,7 @@ def value2serial(t, v, rel, l):
 	if t == "I":
 		serial += jenc.encode(v)
 	if t == "B":
-		serial += jenc.encode(l + "/" + rel)
+		serial += jenc.encode("/entity/" + l + "/" + rel)
 	if t == "T":
 		serial += v
 	return serial
@@ -246,15 +232,15 @@ def cursor2serial(rel, c):
 		elif len(row) > 2:
 			raise PiiError(f"Too many columns: {row}")
 
-		serial += value2serial(l, row[0], rel, l)
+		serial += value2serial(l, row[0], rel, row[0])
 		serial += f" -- {rel}"
 		if r:
 			serial += " -- "
-			serial += value2serial(r, row[1], rel, l)
+			serial += value2serial(r, row[1], rel, row[0])
 		serial += "\n"
 	return serial
 
-def entity2serial(e):
+def entity2serial(e, conn):
 	serial = ""
 
 	c = conn.cursor()
@@ -328,29 +314,28 @@ memfiles = {"/pii": """
 <html style="height:100%%;">
   <head>
     <title>Product Information Index</title>
-    <script
-      type="text/javascript"
-      src="https://visjs.github.io/vis-network/standalone/umd/vis-network.min.js"
-    ></script>
-    <script
-      type="text/javascript"
-      src="pii.js"
-    ></script>
+    <script type="text/javascript" src="vis-network.min.js"></script>
+    <script type="text/javascript" src="pii.js"></script>
   <head/>
   <body style="height:100%%;">
     <div id="mynetwork" style="height:100%%;"></div>
-    <script>
-      httpGetAsync('http://localhost:%d/query', parse_relations);
-    </script>
+    <script> httpGetAsync('http://localhost:%d/query', parse_relations); </script>
   </body>
 </html>
 """}
 
 class HttpHandler(http.server.SimpleHTTPRequestHandler):
 	def do_GET(self):
-		global memfiles
+		global memfiles, webconn
 
-		if self.path in memfiles.keys():
+		if not webconn:
+			webconn = sqlite3.connect('pii.sqlite3', isolation_level=None)
+
+		if self.path.startswith("/entity/"):
+			self.send_response(200)
+			self.end_headers()
+			self.wfile.write(entity2serial(self.path.split("/")[2], webconn).encode())			
+		elif self.path in memfiles.keys():
 			self.send_response(200)
 			self.end_headers()
 			self.wfile.write(memfiles[self.path].encode())

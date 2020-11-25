@@ -1,7 +1,7 @@
 nodes = []
 edges = []
 
-function addNode(id) {
+function findNode(id) {
 	var found = null;
 	for (node of nodes) {
 		if (node.id == id) {
@@ -16,38 +16,32 @@ function addNode(id) {
 	return found;
 }
 
-function replaceRow(rows, key, value) {
+function replaceRow(rows, prop, value) {
 	for (i = 0; i < rows.length; i++) {
-		console.log(key + ":");
-		console.log(rows[i].slice(0, key.length+1));
-		if (key + ":" == rows[i].slice(0, key.length+1)) {
-			rows[i] = value;
+		if (prop + ":" == rows[i].slice(0, prop.length+1)) {
+			rows[i] = prop + ": " + value;
 			break;
 		}
 	}
 }
 
+function findRow(rows, prop) {
+	for (i = 0; i < rows.length; i++) {
+		if (prop + ":" == rows[i].slice(0, prop.length+1)) {
+			return rows[i].slice(prop.length+2, rows[i].length);
+		}
+	}
+	rows.push(prop + ": ");
+	return "";
+}
+
 function addNodeText(id, key, text) {
-	node = addNode(id);
+	node = findNode(id);
+	prop = key.slice(0, -2);
 	rows = node.label.split("\n");
 	rows.pop()
 	if (key == "IdentityES") {
 		rows[0] += "<b>" + text + "</b>";
-	}
-	else if (key == "RoleES") {
-		if (node[key]) {
-			node[key].push(text.slice(0, -1));
-		}
-		else {
-			node[key] = [text.slice(0, -1)];
-			rows.push(key.slice(0, -2) + ": ")
-		}
-		value = key.slice(0, -2) + ": [ "
-		for (v of node[key]) {
-			value += v + ", "
-		}
-		value += "]"
-		replaceRow(rows, key.slice(0, -2), value)
 	}
 	else if (key == "ShapeES") {
 		node.shape = text
@@ -56,7 +50,20 @@ function addNodeText(id, key, text) {
 		node.color = text
 	}
 	else {
-		rows.push(key.slice(0, -2) + ": " + text);
+		if (key == "RoleES") {
+			text = text.slice(0, -1);
+		}
+		rowtext = findRow(rows, prop);
+		if (rowtext.length == 0) {
+			rowtext = text;
+		}
+		else if (rowtext.slice(0, 1) != "[") {
+			rowtext = "[ " + text + ", " + rowtext + " ]";
+		}
+		else {
+			rowtext = "[ " + text + ", " + rowtext.slice(2, rowtext.length);			
+		}
+		replaceRow(rows, prop, rowtext);
 	}
 	node.label = ""
 	for (row of rows) {
@@ -65,8 +72,10 @@ function addNodeText(id, key, text) {
 	console.log(node.label);
 }
 
-function addEdge(id1, label, id2) {
-	edges.push({from: id1, to: id2, label: label.slice(0, -2), font: { size: 12, align: "horizontal" } });
+function findEdge(id1, label, id2) {
+	edge = {from: id1, to: id2, label: label.slice(0, -2), font: { size: 12, align: "horizontal" } };
+	edges.push(edge);
+	return edge;
 }
 
 function parse_relations(text) {
@@ -75,13 +84,13 @@ function parse_relations(text) {
 		parts = line.split(" -- ");
 		console.log(parts)
 		if (parts.length == 3) {
-			addNode(parts[0]);
+			findNode(parts[0]);
 			if (parts[2].charAt(0) == "\"") {
 				addNodeText(parts[0], parts[1], eval(parts[2]));
 			}
 			else {
-				addNode(parts[2]);
-				addEdge(parts[0], parts[1], parts[2]);
+				findNode(parts[2]);
+				findEdge(parts[0], parts[1], parts[2]);
 			}
 		}
 	}
@@ -102,6 +111,10 @@ function parse_relations(text) {
 		interaction: { navigationButtons: true },
 	};
 	network = new vis.Network(container, data, options);
+	network.on("click", function (params) {
+		findNode(params.nodes[0]).label = " \n\n";
+		httpGetAsync("entity/" + params.nodes[0], parse_relations);
+	});
 }
 
 function httpGetAsync(theUrl, callback)
