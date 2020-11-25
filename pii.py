@@ -53,14 +53,17 @@ jenc = json.JSONEncoder()
 # Mapping from designation letter to sqlite3 column type
 dbtype = {"S": "TEXT", "T": "TEXT", "B": "BLOB", "I": "INTEGER", "R": "REAL", "E": "TEXT"}
 
-def role(name):
+###
+### Basic database schema creation
+
+def unary_rel(name):
 	left_type = dbtype[name[-1:]]
 	statements = []
 	statements += [(f"CREATE TABLE IF NOT EXISTS {name} (l {left_type}, t TEXT, a TEXT)", ())]
 	statements += [(f"CREATE VIEW IF NOT EXISTS {name}c1 AS select l, t from (select l, t, a from (select l, t, a from {name} order by t desc) group by l) where a='T'", ())]
 	return statements
 
-def relation(name):
+def binary_rel(name):
 	left_type = dbtype[name[-2:-1]]
 	right_type = dbtype[name[-1:]]
 	statements = []
@@ -72,24 +75,35 @@ def relation(name):
 	statements += [(f"CREATE VIEW IF NOT EXISTS {name}c11 AS select l, r, t from {name}c11x UNION select l, r, t from (select l, r, t from {name}cn1 where r not in (select r from {name}c11x) order by t) group by r UNION select l, r, t from (select l, r, t from {name}c1n where l not in (select l from {name}c11x) order by t) group by l", ())]
 	return statements
 
+###
+### Domain model definition
+
+def model(relation, associate=True):
+	statements = []
+	a = "T" if associate else "F"
+	now = datetime.datetime.now().isoformat()
+	schema = relation.split(" -- ")
+	if len(schema) == 2 or len(schema) == 3:
+		statements += unary_rel(schema[0])
+		statements += binary_rel(schema[1][:-3])
+		statements += [(f"INSERT INTO LeftSS (l, r, t, a) values (?, ?, ?, ?)", (schema[0], schema[1], now, a))]
+		if len(schema) == 3:
+			statements += unary_rel(schema[2])
+			statements += [(f"INSERT INTO RightSS (l, r, t, a) values (?, ?, ?, ?)", (schema[1], schema[2], now, a))]
+	elif len(schema) < 2:
+		raise PiiError(f"Too few arcs ( -- ): {relation}")
+	elif len(schema) > 3:
+		raise PiiError(f"Too many arcs ( -- ): {relation}")
+	return statements
+
+###
+### Relate entities and values
+
 def relate(tuple_triplet, associate=True):
 	statements = []
 	a = "T" if associate else "F"
 	now = datetime.datetime.now().isoformat()
-	if len(tuple_triplet) == 1:
-		schema = tuple_triplet[0].split(" -- ")
-		if len(schema) == 2 or len(schema) == 3:
-			statements += role(schema[0])
-			statements += relation(schema[1])
-			statements += [(f"INSERT INTO LeftSS (l, r, t, a) values (?, ?, ?, ?)", (schema[0], schema[1], now, a))]
-			if len(schema) == 3:
-				statements += role(schema[2])
-				statements += [(f"INSERT INTO RightSS (l, r, t, a) values (?, ?, ?, ?)", (schema[1], schema[2], now, a))]
-		elif len(schema) < 2:
-			raise PiiError(f"Too few arcs ( -- ): {tuple_triplet[0]}")
-		elif len(schema) > 3:
-			raise PiiError(f"Too many arcs ( -- ): {tuple_triplet[0]}")
-	elif len(tuple_triplet) == 2:
+	if len(tuple_triplet) == 2:
 		l = tuple_triplet[0]
 		rel = tuple_triplet[1]
 		statements += [(f"INSERT INTO {rel} (l, t, a) values (?, ?, ?)", (l, now, a))]
@@ -100,8 +114,11 @@ def relate(tuple_triplet, associate=True):
 		r = tuple_triplet[2]
 		statements += [(f"INSERT INTO {rel} (l, r, t, a) values (?, ?, ?, ?)", (l, r, now, a))]
 	else:
-		raise PiiError("Too many items: {tuple_triplet}")
+		raise PiiError("Too few/many items: {tuple_triplet}")
 	return statements
+
+###
+### Database access
 
 def execute(statements):
 	for (s, v) in statements:
@@ -110,6 +127,9 @@ def execute(statements):
 
 def close():
 	conn.close()
+
+###
+### Tracker functions
 
 def sha256sum(filename):
     h  = hashlib.sha256()
@@ -177,6 +197,9 @@ def trackFile(path, mimetype):
 
 	return (statements, mutable, constant)
 
+###
+### Web access
+
 def value2serial(t, v, rel, l):
 	serial = ""
 	if t == "E":
@@ -227,7 +250,7 @@ def entity2serial(e):
 
 	c = conn.cursor()
 	c.execute("""select lft.r from RoleEScnn role
-					left join LeftSScnn lft on (lft.l = role.r)
+					join LeftSScnn lft on (lft.l = role.r)
 					where role.l = ?""", (e, ))
 	rels = []
 	for row in c:
@@ -235,14 +258,16 @@ def entity2serial(e):
 	c.close()
 
 	for rel in rels:
+		# Find the relations the entity is part of
 		c = conn.cursor()
-		c.execute(f"""select rel.l, rel.r from {rel}cnn rel
+		c.execute(f"""select rel.l, rel.r from {rel} rel
 						where rel.l = ?""", (e, ))
-		serial += cursor2serial(rel, c)
+		serial += cursor2serial(rel[:-3], c)
 		c.close()		
 
+		# Find the identity of related entities
 		c = conn.cursor()
-		c.execute(f"""select id.l, id.r from {rel}cnn rel
+		c.execute(f"""select id.l, id.r from {rel} rel
 						join IdentityEScnn id on (rel.r = id.l)
 						where rel.l = ?""", (e, ))
 		serial += cursor2serial("IdentityES", c)
@@ -301,6 +326,7 @@ def serve(serial):
 
 	memfiles["/pii"] = memfiles["/pii"] % webport
 	memfiles["/query"] = serial
+	print(serial)
 
 	web_thread = threading.Thread(target=webserver, args=(webport, ))
 	web_thread.start()
@@ -313,14 +339,16 @@ def serve(serial):
 	print("webserver: stopping")
 	httpd.shutdown()
 
+###
+### Pii initialization
+
 if newdb:
 	# Core schema
-	execute(relation("RoleES"))
-	execute(relation("ShapeSS"))
-	execute(relation("ColorSS"))
-	execute(relation("LeftSS"))
-	execute(relation("RightSS"))
-	execute(relation("CardinalitySS"))
+	execute(binary_rel("RoleES"))
+	execute(binary_rel("ShapeSS"))
+	execute(binary_rel("ColorSS"))
+	execute(binary_rel("LeftSS"))
+	execute(binary_rel("RightSS"))
 
 if __name__ == '__main__':
 	conn.close()

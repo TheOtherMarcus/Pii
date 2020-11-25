@@ -27,19 +27,19 @@ import pii
 
 statements = []
 
-statements += pii.relate(["EntityE -- IdentityES"])
+statements += pii.model("EntityE -- IdentityEScn1")
 
-statements += pii.relate(["FileE -- PathES"])
+statements += pii.model("FileE -- PathESc11")
 
-statements += pii.relate(["ConstantE -- MimeTypeES"])
-statements += pii.relate(["ConstantE -- CreationTimeES"])
-statements += pii.relate(["ConstantE -- ValueEB"])
-statements += pii.relate(["ConstantE -- ShaES"])
+statements += pii.model("ConstantE -- MimeTypeEScn1")
+statements += pii.model("ConstantE -- CreationTimeEScn1")
+statements += pii.model("ConstantE -- ValueEBcn1")
+statements += pii.model("ConstantE -- ShaEScn1")
 
-statements += pii.relate(["MutableE -- ContentEE -- ConstantE"])
+statements += pii.model("MutableE -- ContentEEc1n -- ConstantE")
 
-statements += pii.relate(["ContainerE -- SectionEE -- EmbeddedE"])
+statements += pii.model("ContainerE -- SectionEEc1n -- EmbeddedE")
 
-statements += pii.relate(["ArtifactE -- VersionEE -- VersionE"])
+statements += pii.model("ArtifactE -- VersionEEc1n -- VersionE")
 
 pii.execute(statements)
