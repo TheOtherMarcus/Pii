@@ -141,7 +141,7 @@ def sha256sum(filename):
             h.update(mv[:n])
     return h.hexdigest()
 
-def trackFile(path, mimetype):
+def trackFile(path, contenttype):
 	statements = []
 	c = conn.cursor()
 	c.execute("""select file.l from FileEc1 file
@@ -165,10 +165,10 @@ def trackFile(path, mimetype):
 	c = conn.cursor()
 	c.execute("""select constant.l from ConstantEc1 constant
 					left join ShaEScn1 sha on (constant.l = sha.l)
-					left join MimeTypeEScn1 mimetype on (constant.l = mimetype.l)
+					left join ContentTypeEScn1 contenttype on (constant.l = contenttype.l)
 					where sha.r = ?
-					and mimetype.r = ?
-					limit 1""", (sha, mimetype))
+					and contenttype.r = ?
+					limit 1""", (sha, contenttype))
 	constant = None
 	for row in c:
 		constant = row[0]
@@ -180,9 +180,9 @@ def trackFile(path, mimetype):
 		statements += relate([constant, "IdentityES", "{} {}".format(os.path.basename(path), mtime)])		
 		statements += relate([constant, "ConstantE"])
 		statements += relate([constant, "ShaES", sha])
-		statements += relate([constant, "MimeTypeES", mimetype])
+		statements += relate([constant, "ContentTypeES", contenttype])
 		statements += relate([constant, "CreationTimeES", mtime])
-		statements += relate([constant, "ValueEB", sqlite3.Binary(open(path, "rb").read())])
+		statements += relate([constant, "ContentEB", sqlite3.Binary(open(path, "rb").read())])
 
 	c = conn.cursor()
 	c.execute("""select content.l, content.r from ContentEEcnn content 
@@ -212,7 +212,7 @@ def value2serial(t, v, rel, l):
 	if t == "I":
 		serial += jenc.encode(v)
 	if t == "B":
-		serial += jenc.encode("/entity/" + l + "/" + rel)
+		serial += jenc.encode("/content/" + l + "/" + rel)
 	if t == "T":
 		serial += v
 	return serial
@@ -331,29 +331,29 @@ class HttpHandler(http.server.SimpleHTTPRequestHandler):
 		if not webconn:
 			webconn = sqlite3.connect('pii.sqlite3', isolation_level=None)
 
-		if self.path.startswith("/entity/"):
-			parts = self.path.split("/")
-			if len(parts) == 3:
-				self.send_response(200)
-				self.send_header("Content-Type", "text/plain; charset=UTF-8")
-				self.end_headers()
-				self.wfile.write(entity2serial(parts[2], webconn).encode())
+		parts = self.path.split("/")
+		if parts[1] == "entity":
+			self.send_response(200)
+			self.send_header("Content-Type", "text/plain; charset=UTF-8")
+			self.end_headers()
+			self.wfile.write(entity2serial(parts[2], webconn).encode())
 
-			elif len(parts) == 4 and parts[3] == "ValueEB":
-				c = webconn.cursor()
-				c.execute("""select mimetype.r, value.r
-								from MimeTypeEScn1 mimetype, ValueEBcn1 value
-								where value.l = mimetype.l and mimetype.l = ?""", (parts[2], ))
-				row = c.fetchone()
+		elif parts[1] == "content":
+			c = webconn.cursor()
+			c.execute(f"""select contenttype.r, content.r
+							from ContentTypeEScn1 contenttype, {parts[3]}cn1 content
+							where content.l = contenttype.l and contenttype.l = ?""", (parts[2], ))
+			row = c.fetchone()
+			if row:
 				self.send_response(200)
 				self.send_header("Content-Type", row[0])
 				self.end_headers()
 				self.wfile.write(row[1])
-				c.close()
-				
+			c.close()
+
 		elif self.path in memfiles.keys():
 			self.send_response(200)
-			#self.send_header("Content-Type", memfiles[self.path][0])
+			self.send_header("Content-Type", memfiles[self.path][0])
 			self.end_headers()
 			self.wfile.write(memfiles[self.path][1].encode())
 

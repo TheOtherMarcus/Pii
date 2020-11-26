@@ -31,9 +31,9 @@ statements += pii.model("EntityE -- IdentityEScn1")
 
 statements += pii.model("FileE -- PathESc11")
 
-statements += pii.model("ConstantE -- MimeTypeEScn1")
+statements += pii.model("ConstantE -- ContentTypeEScn1")
 statements += pii.model("ConstantE -- CreationTimeEScn1")
-statements += pii.model("ConstantE -- ValueEBcn1")
+statements += pii.model("ConstantE -- ContentEBcn1")
 statements += pii.model("ConstantE -- ShaEScn1")
 
 statements += pii.model("MutableE -- ContentEEc1n -- ConstantE")
