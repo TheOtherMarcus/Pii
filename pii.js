@@ -1,5 +1,6 @@
-nodes = []
-edges = []
+nodes = [];
+edges = [];
+network = null;
 
 function findNode(id) {
 	var found = null;
@@ -10,7 +11,7 @@ function findNode(id) {
 		}
 	}
 	if (found == null) {
-		found = {id: id, font: { multi: "html", size: 12 }, label: " \n\n", shape: "box"};
+		found = {id: id, font: { multi: "html", size: 12 }, label: " \n\n", shape: "box" };
 		nodes.push(found)
 	}
 	return found;
@@ -47,11 +48,14 @@ function addNodeText(id, key, text) {
 		node.shape = text
 	}
 	else if (key == "ColorES") {
-		node.color = text
+		node.color = {background: text, border: "black"}
 	}
 	else {
 		if (key == "RoleES") {
 			text = text.slice(0, -1);
+		}
+		if (key.slice(-1, key.length) == "B") {
+			node.link = text;
 		}
 		rowtext = findRow(rows, prop);
 		if (rowtext.length == 0) {
@@ -94,27 +98,19 @@ function parse_relations(text) {
 			}
 		}
 	}
-	// create a network
-	var container = document.getElementById("mynetwork");
-	var data = {
-		nodes: nodes,
-		edges: edges,
+	if (!network) {
+		newNetwork();
+	}
+	else {
+		network.setData({nodes: nodes, edges: edges} );
+	}
+}
+
+function parse_relations_and_move(movement) {
+	return function (text) {
+		parse_relations(text);
+		network.moveTo(movement);
 	};
-	var options = {
-		layout: {
-            hierarchical: {
-              direction: "UD",
-              sortMethod: "directed",
-            },
-          },
-		physics: { hierarchicalRepulsion: { avoidOverlap: 1 }, },
-		interaction: { navigationButtons: true },
-	};
-	network = new vis.Network(container, data, options);
-	network.on("click", function (params) {
-		findNode(params.nodes[0]).label = " \n\n";
-		httpGetAsync("entity/" + params.nodes[0], parse_relations);
-	});
 }
 
 function httpGetAsync(theUrl, callback)
@@ -126,4 +122,46 @@ function httpGetAsync(theUrl, callback)
     }
     xmlHttp.open("GET", theUrl, true); // true for asynchronous 
     xmlHttp.send(null);
+}
+
+function newNetwork() {
+	var container = document.getElementById("mynetwork");
+	var data = {
+		nodes: nodes,
+		edges: edges,
+	};
+	var options = {
+		layout: {
+	        hierarchical: {
+	          direction: "UD",
+	          sortMethod: "directed",
+	        },
+	      },
+		physics: { hierarchicalRepulsion: { avoidOverlap: 1 }, },
+		interaction: { navigationButtons: true },
+	};
+	network = new vis.Network(container, data, options);
+	network.on("click", function (params) {
+		if (params.nodes.length > 0) {
+			movement = {position: {x: params.pointer.canvas.x, y: params.pointer.canvas.y}, scale: 1, animation: { duration: 1000, easingFunction: "easeInOutQuad" } }
+			node = findNode(params.nodes[0]);
+			rows = node.label.split("\n");
+			if (findRow(rows, "Role").length == 0) {
+				node.label = " \n\n";
+				httpGetAsync("entity/" + params.nodes[0], parse_relations_and_move(movement));
+			}
+			else {
+				network.moveTo(movement);
+			}
+		}
+	});
+	network.on("doubleClick", function (params) {
+		if (params.nodes.length > 0) {
+			node = findNode(params.nodes[0]);
+			rows = node.label.split("\n");
+			if (node.link && node.link.length > 0) {
+				window.open(node.link);
+			}
+		}
+	});
 }
