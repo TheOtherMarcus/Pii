@@ -332,13 +332,29 @@ class HttpHandler(http.server.SimpleHTTPRequestHandler):
 			webconn = sqlite3.connect('pii.sqlite3', isolation_level=None)
 
 		if self.path.startswith("/entity/"):
-			self.send_response(200)
-			self.end_headers()
-			self.wfile.write(entity2serial(self.path.split("/")[2], webconn).encode())			
+			parts = self.path.split("/")
+			if len(parts) == 3:
+				self.send_response(200)
+				self.end_headers()
+				self.wfile.write(entity2serial(parts[2], webconn).encode())
+
+			elif len(parts) == 4 and parts[3] == "ValueEB":
+				c = webconn.cursor()
+				c.execute("""select mimetype.r, value.r
+								from MimeTypeEScn1 mimetype, ValueEBcn1 value
+								where value.l = mimetype.l and mimetype.l = ?""", (parts[2], ))
+				row = c.fetchone()
+				self.send_response(200)
+				self.send_header("Content-Type", row[0])
+				self.end_headers()
+				self.wfile.write(row[1])
+				c.close()
+				
 		elif self.path in memfiles.keys():
 			self.send_response(200)
 			self.end_headers()
 			self.wfile.write(memfiles[self.path].encode())
+
 		else:
 			http.server.SimpleHTTPRequestHandler.do_GET(self)
 
