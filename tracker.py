@@ -27,15 +27,15 @@ import pii
 
 statements = []
 
-(stmts, mutable, constant) = pii.trackFile("./pii.py", "text/plain")
+(stmts, mutable, constant) = pii.trackFile("./pii.py", "text/plain; charset=UTF-8")
 statements += stmts
-(stmts, mutable, constant) = pii.trackFile("./model.py", "text/plain")
+(stmts, mutable, constant) = pii.trackFile("./model.py", "text/plain; charset=UTF-8")
 statements += stmts
-(stmts, mutable, constant) = pii.trackFile("./presentation.py", "text/plain")
+(stmts, mutable, constant) = pii.trackFile("./presentation.py", "text/plain; charset=UTF-8")
 statements += stmts
-(stmts, mutable, constant) = pii.trackFile("./tracker.py", "text/plain")
+(stmts, mutable, constant) = pii.trackFile("./tracker.py", "text/plain; charset=UTF-8")
 statements += stmts
-(stmts, mutable, constant) = pii.trackFile("./q_files.py", "text/plain")
+(stmts, mutable, constant) = pii.trackFile("./q_files.py", "text/plain; charset=UTF-8")
 statements += stmts
 
 pii.execute(statements)

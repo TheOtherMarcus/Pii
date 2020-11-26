@@ -309,7 +309,7 @@ def entity2serial(e, conn):
 ###
 ### Web application
 
-memfiles = {"/pii": """
+memfiles = {"/pii": ("text/html; charset=UTF-8", """
 <!DOCTYPE html>
 <html style="height:100%%;">
   <head>
@@ -322,7 +322,7 @@ memfiles = {"/pii": """
     <script> httpGetAsync('http://localhost:%d/query', parse_relations); </script>
   </body>
 </html>
-"""}
+""")}
 
 class HttpHandler(http.server.SimpleHTTPRequestHandler):
 	def do_GET(self):
@@ -335,6 +335,7 @@ class HttpHandler(http.server.SimpleHTTPRequestHandler):
 			parts = self.path.split("/")
 			if len(parts) == 3:
 				self.send_response(200)
+				self.send_header("Content-Type", "text/plain; charset=UTF-8")
 				self.end_headers()
 				self.wfile.write(entity2serial(parts[2], webconn).encode())
 
@@ -352,8 +353,9 @@ class HttpHandler(http.server.SimpleHTTPRequestHandler):
 				
 		elif self.path in memfiles.keys():
 			self.send_response(200)
+			#self.send_header("Content-Type", memfiles[self.path][0])
 			self.end_headers()
-			self.wfile.write(memfiles[self.path].encode())
+			self.wfile.write(memfiles[self.path][1].encode())
 
 		else:
 			http.server.SimpleHTTPRequestHandler.do_GET(self)
@@ -373,8 +375,8 @@ def serve(serial):
 
 	webport = random.randint(1025, 9999)
 
-	memfiles["/pii"] = memfiles["/pii"] % webport
-	memfiles["/query"] = serial
+	memfiles["/pii"] = (memfiles["/pii"][0], memfiles["/pii"][1] % webport)
+	memfiles["/query"] = ("text/plain; charset=UTF-8", serial)
 	print(serial)
 
 	web_thread = threading.Thread(target=webserver, args=(webport, ))
