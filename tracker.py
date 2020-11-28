@@ -27,7 +27,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "10"
+__version__ = "11"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -90,6 +90,25 @@ def newPythonArtifact(name):
 	statements += pii.relate([artifact, "IntegratedE"])
 	statements += pii.relate([artifact, "ModuleE"])
 	return (statements, artifact)
+
+def newJavascriptArtifact(name):
+	(statements, artifact) = newArtifact(name)
+	return (statements, artifact)
+
+def link(l, rel, r):
+	statements = []
+	c = pii.conn.cursor()
+	c.execute(f"""select rel.l, rel.r from {rel}cnn rel 
+					where rel.l = ?
+					and rel.r = ?
+					limit 1""", (l, r))
+	lnk = None
+	for row in c:
+		lnk = row[0]
+	c.close()
+	if not lnk:
+		statements += pii.relate([l, rel, r])
+	return statements
 
 def trackFile(path, contenttype, mutable=None):
 	statements = []
@@ -165,7 +184,7 @@ def trackPythonFile(path):
 	statements = []
 	vnr = pythonProperty(path, "__version__")
 	imports = pythonImports(path)
-	moduleName = os.path.basename(path)[0:-3]
+	moduleName = os.path.basename(path)[0:-3] + " / python"
 	artifact = findArtifact(moduleName)
 	if not artifact:
 		(stmts, artifact) = newPythonArtifact(moduleName)
@@ -192,6 +211,7 @@ def trackPythonFile(path):
 	statements += stmts
 
 	for imp in imports:
+		imp = imp + " / python"
 		module = findArtifact(imp)
 		if not module:
 			(stmts, module) = newPythonArtifact(imp)
@@ -211,6 +231,48 @@ def trackPythonFile(path):
 
 	return statements
 
+def javascriptProperty(path, property):
+	property = " * " + property
+	with open(path) as f:
+		line = f.readline()
+		while line:
+			if line[0:len(property)] == property:
+				return line.split(" ")[3].strip()
+			line = f.readline()
+	return None
+
+def trackJavascriptFile(path):
+	statements = []
+	vnr = javascriptProperty(path, "@version")
+	print(vnr)
+	moduleName = os.path.basename(path)[0:-3] + " / javascript"
+	artifact = findArtifact(moduleName)
+	if not artifact:
+		(stmts, artifact) = newJavascriptArtifact(moduleName)
+		statements += stmts
+
+	c = pii.conn.cursor()
+	c.execute("""select version.l from VersionEcn version
+					join VersionNumberEScn1 vnr on (version.l = vnr.l)
+					join VersionEE vrel on (version.l = vrel.r)
+					where vrel.l = ?
+					and vnr.r = ?
+					limit 1""", (artifact, vnr))
+	mutable = None
+	for row in c:
+		mutable = row[0]
+	c.close()
+	if not mutable:
+		(stmts, mutable) = newFile(path)
+		statements += stmts
+		statements += pii.relate([mutable, "VersionE"])
+		statements += pii.relate([mutable, "VersionNumberES", vnr])
+		statements += pii.relate([artifact, "VersionEE", mutable])
+	(stmts, mutable, constant) = trackFile(path, "text/plain; charset=UTF-8", mutable=mutable)
+	statements += stmts
+
+	return statements
+
 ###
 ### Track project
 
@@ -220,3 +282,9 @@ pii.execute(trackPythonFile("./presentation.py"))
 pii.execute(trackPythonFile("./tracker.py"))
 pii.execute(trackPythonFile("./q_files.py"))
 pii.execute(trackPythonFile("./setversions.py"))
+pii.execute(trackJavascriptFile("./pii.js"))
+
+piipy = findArtifact("pii / python")
+piijs = findArtifact("pii / javascript")
+pii.execute(link(piipy, "ModuleEE", piijs))
+pii.execute(link(piijs, "ModuleEE", piipy))
