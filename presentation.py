@@ -23,6 +23,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+__author__ = "Marcus T. Andersson"
+__copyright__ = "Copyright 2020, Marcus T. Andersson"
+__credits__ = ["Marcus T. Andersson"]
+__license__ = "MIT"
+__version__ = "1"
+__maintainer__ = "Marcus T. Andersson"
+
 import pii
 
 statements = []
