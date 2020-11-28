@@ -7,9 +7,8 @@ function current_version {
 	git log --name-only --pretty=format: | sort | uniq -c | sed -e "s/^ *//g" | sort -nr | grep $1 | cut -d" " -f1
 }
 
-for file in $(git ls-files -m); do
+for file in $(ls *.py); do
 	version=$(( $(current_version ${file}) + 1 ))
 	echo ${file} ${version}
 	sed -i -e "s/__version__ = .*/__version__ = \"${version}\"/g" ${file}
-	git add ${file}
 done

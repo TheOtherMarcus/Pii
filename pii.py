@@ -37,7 +37,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "15"
+__version__ = "16"
 __maintainer__ = "Marcus T. Andersson"
 
 dbfile = 'pii.sqlite3'

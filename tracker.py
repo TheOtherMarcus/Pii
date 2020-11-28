@@ -27,7 +27,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "7"
+__version__ = "8"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
