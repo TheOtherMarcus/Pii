@@ -27,7 +27,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "9"
+__version__ = "10"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -76,6 +76,20 @@ def newFile(path):
 	statements += pii.relate([mutable, "PathES", path])
 	statements += pii.relate([mutable, "MutableE"])
 	return (statements, mutable)	
+
+def newArtifact(name):
+	statements = []
+	artifact = str(uuid.uuid4())
+	statements += pii.relate([artifact, "EntityE"])
+	statements += pii.relate([artifact, "IdentityES", name])		
+	statements += pii.relate([artifact, "ArtifactE"])
+	return (statements, artifact)
+
+def newPythonArtifact(name):
+	(statements, artifact) = newArtifact(name)
+	statements += pii.relate([artifact, "IntegratedE"])
+	statements += pii.relate([artifact, "ModuleE"])
+	return (statements, artifact)
 
 def trackFile(path, contenttype, mutable=None):
 	statements = []
@@ -133,6 +147,16 @@ def pythonProperty(path, property):
 			line = f.readline()
 	return None
 
+def pythonImports(path):
+	imports = []
+	with open(path) as f:
+		line = f.readline()
+		while line:
+			if line[0:7] == "import " or line[0:5] == "from ":
+				imports += [line.split(" ")[1].rstrip()]
+			line = f.readline()
+	return imports
+
 # trackPythonFile() differs from trackFile() as it creates a new
 # entity for each new version of the file it finds. The version is
 # specified with the Python variable __version__ found in the file.
@@ -140,13 +164,12 @@ def pythonProperty(path, property):
 def trackPythonFile(path):
 	statements = []
 	vnr = pythonProperty(path, "__version__")
+	imports = pythonImports(path)
 	moduleName = os.path.basename(path)[0:-3]
 	artifact = findArtifact(moduleName)
 	if not artifact:
-		artifact = str(uuid.uuid4())
-		statements += pii.relate([artifact, "EntityE"])
-		statements += pii.relate([artifact, "IdentityES", moduleName])		
-		statements += pii.relate([artifact, "ArtifactE"])
+		(stmts, artifact) = newPythonArtifact(moduleName)
+		statements += stmts
 
 	c = pii.conn.cursor()
 	c.execute("""select version.l from VersionEcn version
@@ -168,17 +191,32 @@ def trackPythonFile(path):
 	(stmts, mutable, constant) = trackFile(path, "text/plain; charset=UTF-8", mutable=mutable)
 	statements += stmts
 
+	for imp in imports:
+		module = findArtifact(imp)
+		if not module:
+			(stmts, module) = newPythonArtifact(imp)
+			statements += stmts
+
+		c = pii.conn.cursor()
+		c.execute("""select module.l, module.r from ModuleEEcnn module 
+						where module.l = ?
+						and module.r = ?
+						limit 1""", (artifact, module))
+		rel = None
+		for row in c:
+			rel = row[0]
+		c.close()
+		if not rel:
+			statements += pii.relate([artifact, "ModuleEE", module])
+
 	return statements
 
 ###
 ### Track project
 
-statements = []
-
-statements += trackPythonFile("./pii.py")
-statements += trackPythonFile("./model.py")
-statements += trackPythonFile("./presentation.py")
-statements += trackPythonFile("./tracker.py")
-statements += trackPythonFile("./q_files.py")
-
-pii.execute(statements)
+pii.execute(trackPythonFile("./pii.py"))
+pii.execute(trackPythonFile("./model.py"))
+pii.execute(trackPythonFile("./presentation.py"))
+pii.execute(trackPythonFile("./tracker.py"))
+pii.execute(trackPythonFile("./q_files.py"))
+pii.execute(trackPythonFile("./setversions.py"))

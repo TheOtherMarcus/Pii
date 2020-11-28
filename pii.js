@@ -77,9 +77,19 @@ function addNodeText(id, key, text) {
 }
 
 function findEdge(id1, label, id2) {
-	edge = {from: id1, to: id2, label: label.slice(0, -2), font: { size: 12, align: "horizontal" } };
-	edges.push(edge);
-	return edge;
+	var found = null;
+	label = label.slice(0, -2);
+	for (edge of edges) {
+		if (edge.from == id1 && edge.to == id2 && edge.label == label) {
+			found = edge;
+			break;
+		}
+	}
+	if (found == null) {
+		found = {from: id1, to: id2, arrows: "to", label: label, font: { size: 12, align: "horizontal" } };
+		edges.push(found);
+	}
+	return found;
 }
 
 function parse_relations(text) {
@@ -131,13 +141,26 @@ function newNetwork() {
 		edges: edges,
 	};
 	var options = {
-		layout: {
+		/*layout: {
 	        hierarchical: {
 	          direction: "UD",
-	          sortMethod: "directed",
+	          shakeTowards: "leaves",
+	          sortMethod: "hubsize"
 	        },
-	      },
-		physics: { hierarchicalRepulsion: { avoidOverlap: 1 }, },
+	      },*/
+		//physics: { hierarchicalRepulsion: { avoidOverlap: 1 }, },
+		physics: {
+            forceAtlas2Based: {
+              gravitationalConstant: -26,
+              centralGravity: 0.005,
+              springLength: 230,
+              springConstant: 0.18,
+            },
+            maxVelocity: 146,
+            solver: "forceAtlas2Based",
+            timestep: 0.35,
+            stabilization: { iterations: 150 },
+          },
 		interaction: { navigationButtons: true },
 	};
 	network = new vis.Network(container, data, options);
