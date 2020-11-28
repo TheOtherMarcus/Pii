@@ -24,18 +24,95 @@
 # SOFTWARE.
 
 import pii
+import hashlib
+import datetime
+import os
+import uuid
+import sqlite3
+
+###
+### Tracker functions
+
+def sha256sum(filename):
+    h  = hashlib.sha256()
+    b  = bytearray(128*1024)
+    mv = memoryview(b)
+    with open(filename, 'rb', buffering=0) as f:
+        for n in iter(lambda : f.readinto(mv), 0):
+            h.update(mv[:n])
+    return h.hexdigest()
+
+def trackFile(path, contenttype):
+	statements = []
+	c = pii.conn.cursor()
+	c.execute("""select file.l from FileEcn file
+					left join PathEScn1 path on (file.l = path.l)
+					where path.r = ?
+					limit 1""", (path, ))
+	mutable = None
+	for row in c:
+		mutable = row[0]
+	c.close()
+	if not mutable:
+		mutable = str(uuid.uuid4())
+		statements += pii.relate([mutable, "EntityE"])
+		statements += pii.relate([mutable, "IdentityES", os.path.basename(path)])		
+		statements += pii.relate([mutable, "FileE"])
+		statements += pii.relate([mutable, "PathES", path])
+		statements += pii.relate([mutable, "MutableE"])
+
+	sha = sha256sum(path)
+
+	c = pii.conn.cursor()
+	c.execute("""select constant.l from ConstantEcn constant
+					left join ShaEScn1 sha on (constant.l = sha.l)
+					left join ContentTypeEScn1 contenttype on (constant.l = contenttype.l)
+					where sha.r = ?
+					and contenttype.r = ?
+					limit 1""", (sha, contenttype))
+	constant = None
+	for row in c:
+		constant = row[0]
+	c.close()
+	if not constant:
+		mtime = datetime.datetime.fromtimestamp(os.path.getmtime(path)).isoformat()
+		constant = str(uuid.uuid4())
+		statements += pii.relate([constant, "EntityE"])
+		statements += pii.relate([constant, "IdentityES", "{} {}".format(os.path.basename(path), mtime)])		
+		statements += pii.relate([constant, "ConstantE"])
+		statements += pii.relate([constant, "ShaES", sha])
+		statements += pii.relate([constant, "ContentTypeES", contenttype])
+		statements += pii.relate([constant, "CreationTimeES", mtime])
+		statements += pii.relate([constant, "ContentEB", sqlite3.Binary(open(path, "rb").read())])
+
+	c = pii.conn.cursor()
+	c.execute("""select content.l, content.r from ContentEEcnn content 
+					where content.l = ?
+					and content.r = ?
+					limit 1""", (mutable, constant))
+	content = None
+	for row in c:
+		content = row[0]
+	c.close()
+	if not content:
+		statements += pii.relate([mutable, "ContentEE", constant])
+
+	return (statements, mutable, constant)
+
+###
+### Track project
 
 statements = []
 
-(stmts, mutable, constant) = pii.trackFile("./pii.py", "text/plain; charset=UTF-8")
+(stmts, mutable, constant) = trackFile("./pii.py", "text/plain; charset=UTF-8")
 statements += stmts
-(stmts, mutable, constant) = pii.trackFile("./model.py", "text/plain; charset=UTF-8")
+(stmts, mutable, constant) = trackFile("./model.py", "text/plain; charset=UTF-8")
 statements += stmts
-(stmts, mutable, constant) = pii.trackFile("./presentation.py", "text/plain; charset=UTF-8")
+(stmts, mutable, constant) = trackFile("./presentation.py", "text/plain; charset=UTF-8")
 statements += stmts
-(stmts, mutable, constant) = pii.trackFile("./tracker.py", "text/plain; charset=UTF-8")
+(stmts, mutable, constant) = trackFile("./tracker.py", "text/plain; charset=UTF-8")
 statements += stmts
-(stmts, mutable, constant) = pii.trackFile("./q_files.py", "text/plain; charset=UTF-8")
+(stmts, mutable, constant) = trackFile("./q_files.py", "text/plain; charset=UTF-8")
 statements += stmts
 
 pii.execute(statements)

@@ -26,8 +26,6 @@
 import sqlite3
 import datetime
 import os
-import uuid
-import hashlib
 import json
 import webbrowser
 import random
@@ -61,7 +59,7 @@ def unary_rel(name):
 	left_type = dbtype[name[-1:]]
 	statements = []
 	statements += [(f"CREATE TABLE IF NOT EXISTS {name} (l {left_type}, t TEXT, a TEXT)", ())]
-	statements += [(f"CREATE VIEW IF NOT EXISTS {name}c1 AS select l, t from (select l, t, a from (select l, t, a from {name} order by t desc) group by l) where a='T'", ())]
+	statements += [(f"CREATE VIEW IF NOT EXISTS {name}cn AS select l, t from (select l, t, a from (select l, t, a from {name} order by t desc) group by l) where a='T'", ())]
 	return statements
 
 def binary_rel(name):
@@ -128,75 +126,6 @@ def execute(statements):
 
 def close():
 	conn.close()
-
-###
-### Tracker functions
-
-def sha256sum(filename):
-    h  = hashlib.sha256()
-    b  = bytearray(128*1024)
-    mv = memoryview(b)
-    with open(filename, 'rb', buffering=0) as f:
-        for n in iter(lambda : f.readinto(mv), 0):
-            h.update(mv[:n])
-    return h.hexdigest()
-
-def trackFile(path, contenttype):
-	statements = []
-	c = conn.cursor()
-	c.execute("""select file.l from FileEc1 file
-					left join PathEScn1 path on (file.l = path.l)
-					where path.r = ?
-					limit 1""", (path, ))
-	mutable = None
-	for row in c:
-		mutable = row[0]
-	c.close()
-	if not mutable:
-		mutable = str(uuid.uuid4())
-		statements += relate([mutable, "EntityE"])
-		statements += relate([mutable, "IdentityES", os.path.basename(path)])		
-		statements += relate([mutable, "FileE"])
-		statements += relate([mutable, "PathES", path])
-		statements += relate([mutable, "MutableE"])
-
-	sha = sha256sum(path)
-
-	c = conn.cursor()
-	c.execute("""select constant.l from ConstantEc1 constant
-					left join ShaEScn1 sha on (constant.l = sha.l)
-					left join ContentTypeEScn1 contenttype on (constant.l = contenttype.l)
-					where sha.r = ?
-					and contenttype.r = ?
-					limit 1""", (sha, contenttype))
-	constant = None
-	for row in c:
-		constant = row[0]
-	c.close()
-	if not constant:
-		mtime = datetime.datetime.fromtimestamp(os.path.getmtime(path)).isoformat()
-		constant = str(uuid.uuid4())
-		statements += relate([constant, "EntityE"])
-		statements += relate([constant, "IdentityES", "{} {}".format(os.path.basename(path), mtime)])		
-		statements += relate([constant, "ConstantE"])
-		statements += relate([constant, "ShaES", sha])
-		statements += relate([constant, "ContentTypeES", contenttype])
-		statements += relate([constant, "CreationTimeES", mtime])
-		statements += relate([constant, "ContentEB", sqlite3.Binary(open(path, "rb").read())])
-
-	c = conn.cursor()
-	c.execute("""select content.l, content.r from ContentEEcnn content 
-					where content.l = ?
-					and content.r = ?
-					limit 1""", (mutable, constant))
-	content = None
-	for row in c:
-		content = row[0]
-	c.close()
-	if not content:
-		statements += relate([mutable, "ContentEE", constant])
-
-	return (statements, mutable, constant)
 
 ###
 ### Model Serialization

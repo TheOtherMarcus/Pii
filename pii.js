@@ -102,7 +102,7 @@ function parse_relations(text) {
 		newNetwork();
 	}
 	else {
-		network.setData({nodes: nodes, edges: edges} );
+		network.setData({nodes: nodes, edges: edges});
 	}
 }
 
