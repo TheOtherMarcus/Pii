@@ -1,4 +1,3 @@
-# Pii
-Product Information Index
+# Pii - Product Information Index
 
-More is on the way...
+Read the introduction at https://formallanguage.blogspot.com/2020/11/product-information-index-pii.html
