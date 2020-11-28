@@ -27,7 +27,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "4"
+__version__ = "5"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -36,17 +36,21 @@ statements = []
 
 statements += pii.model("EntityE -- IdentityEScn1")
 
-statements += pii.model("FileE -- PathESc11")
+statements += pii.model("FileE -- PathEScn1")
 
 statements += pii.model("ConstantE -- ContentTypeEScn1")
 statements += pii.model("ConstantE -- CreationTimeEScn1")
 statements += pii.model("ConstantE -- ContentEBcn1")
 statements += pii.model("ConstantE -- ShaEScn1")
 
-statements += pii.model("MutableE -- ContentEEc1n -- ConstantE")
+statements += pii.model("MutableE -- ContentEEcnn -- ConstantE")
 
 statements += pii.model("ContainerE -- SectionEEc1n -- EmbeddedE")
 
+statements += pii.model("VersionE -- VersionNumberEScn1")
+
 statements += pii.model("ArtifactE -- VersionEEc1n -- VersionE")
+
+statements += pii.model("IntegratedE -- ModuleEEcnn -- ModuleE")
 
 pii.execute(statements)

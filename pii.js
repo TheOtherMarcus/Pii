@@ -42,7 +42,7 @@ function addNodeText(id, key, text) {
 	rows = node.label.split("\n");
 	rows.pop()
 	if (key == "IdentityES") {
-		rows[0] += "<b>" + text + "</b>";
+		rows[0] = "<b>" + text + "</b>";
 	}
 	else if (key == "ShapeES") {
 		node.shape = text

@@ -27,7 +27,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "8"
+__version__ = "9"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -49,24 +49,41 @@ def sha256sum(filename):
             h.update(mv[:n])
     return h.hexdigest()
 
-def trackFile(path, contenttype):
-	statements = []
+def findEntity(role, rel, value):
+	entity = None
 	c = pii.conn.cursor()
-	c.execute("""select file.l from FileEcn file
-					left join PathEScn1 path on (file.l = path.l)
-					where path.r = ?
-					limit 1""", (path, ))
-	mutable = None
+	c.execute(f"""select role.l from {role}cn role
+					join {rel} rel on (role.l = rel.l)
+					where rel.r = ?
+					limit 1""", (value, ))
 	for row in c:
-		mutable = row[0]
+		entity = row[0]
 	c.close()
+	return entity
+
+def findFile(path):
+	return findEntity("FileS", "PathEScn1", path)
+
+def findArtifact(name):
+	return findEntity("ArtifactE", "IdentityEScn1", name)
+
+def newFile(path):
+	statements = []
+	mutable = str(uuid.uuid4())
+	statements += pii.relate([mutable, "EntityE"])
+	statements += pii.relate([mutable, "IdentityES", os.path.basename(path)])		
+	statements += pii.relate([mutable, "FileE"])
+	statements += pii.relate([mutable, "PathES", path])
+	statements += pii.relate([mutable, "MutableE"])
+	return (statements, mutable)	
+
+def trackFile(path, contenttype, mutable=None):
+	statements = []
 	if not mutable:
-		mutable = str(uuid.uuid4())
-		statements += pii.relate([mutable, "EntityE"])
-		statements += pii.relate([mutable, "IdentityES", os.path.basename(path)])		
-		statements += pii.relate([mutable, "FileE"])
-		statements += pii.relate([mutable, "PathES", path])
-		statements += pii.relate([mutable, "MutableE"])
+		mutable = findFile(path)
+	if not mutable:
+		(stmts, mutable) = newFile(path)
+		statements += stmts
 
 	sha = sha256sum(path)
 
@@ -106,20 +123,62 @@ def trackFile(path, contenttype):
 
 	return (statements, mutable, constant)
 
+def pythonProperty(path, property):
+	with open(path) as f:
+		line = f.readline()
+		while line:
+			if line[0:len(property)] == property:
+				exec(line)
+				return locals()[property]
+			line = f.readline()
+	return None
+
+# trackPythonFile() differs from trackFile() as it creates a new
+# entity for each new version of the file it finds. The version is
+# specified with the Python variable __version__ found in the file.
+# It also parses the import statements and adds dependencies
+def trackPythonFile(path):
+	statements = []
+	vnr = pythonProperty(path, "__version__")
+	moduleName = os.path.basename(path)[0:-3]
+	artifact = findArtifact(moduleName)
+	if not artifact:
+		artifact = str(uuid.uuid4())
+		statements += pii.relate([artifact, "EntityE"])
+		statements += pii.relate([artifact, "IdentityES", moduleName])		
+		statements += pii.relate([artifact, "ArtifactE"])
+
+	c = pii.conn.cursor()
+	c.execute("""select version.l from VersionEcn version
+					join VersionNumberEScn1 vnr on (version.l = vnr.l)
+					join VersionEE vrel on (version.l = vrel.r)
+					where vrel.l = ?
+					and vnr.r = ?
+					limit 1""", (artifact, vnr))
+	mutable = None
+	for row in c:
+		mutable = row[0]
+	c.close()
+	if not mutable:
+		(stmts, mutable) = newFile(path)
+		statements += stmts
+		statements += pii.relate([mutable, "VersionE"])
+		statements += pii.relate([mutable, "VersionNumberES", vnr])
+		statements += pii.relate([artifact, "VersionEE", mutable])
+	(stmts, mutable, constant) = trackFile(path, "text/plain; charset=UTF-8", mutable=mutable)
+	statements += stmts
+
+	return statements
+
 ###
 ### Track project
 
 statements = []
 
-(stmts, mutable, constant) = trackFile("./pii.py", "text/plain; charset=UTF-8")
-statements += stmts
-(stmts, mutable, constant) = trackFile("./model.py", "text/plain; charset=UTF-8")
-statements += stmts
-(stmts, mutable, constant) = trackFile("./presentation.py", "text/plain; charset=UTF-8")
-statements += stmts
-(stmts, mutable, constant) = trackFile("./tracker.py", "text/plain; charset=UTF-8")
-statements += stmts
-(stmts, mutable, constant) = trackFile("./q_files.py", "text/plain; charset=UTF-8")
-statements += stmts
+statements += trackPythonFile("./pii.py")
+statements += trackPythonFile("./model.py")
+statements += trackPythonFile("./presentation.py")
+statements += trackPythonFile("./tracker.py")
+statements += trackPythonFile("./q_files.py")
 
 pii.execute(statements)

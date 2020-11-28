@@ -37,7 +37,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "16"
+__version__ = "17"
 __maintainer__ = "Marcus T. Andersson"
 
 dbfile = 'pii.sqlite3'
@@ -186,15 +186,6 @@ def entity2serial(e, conn):
 	c.close()
 
 	c = conn.cursor()
-	c.execute("""select lft.r from RoleEScnn role
-					join LeftSScnn lft on (lft.l = role.r)
-					where role.l = ?""", (e, ))
-	rels = []
-	for row in c:
-		rels += [row[0]]
-	c.close()
-
-	c = conn.cursor()
 	c.execute("""select role.l, color.r from ColorSScn1 color
 					join RoleEScnn role on (color.l = role.r)
 					where role.l = ?""", (e, ))
@@ -207,6 +198,16 @@ def entity2serial(e, conn):
 					where role.l = ?""", (e, ))
 	serial += cursor2serial("ShapeES", c)
 	c.close()		
+
+	# Left relations
+	c = conn.cursor()
+	c.execute("""select lft.r from RoleEScnn role
+					join LeftSScnn lft on (lft.l = role.r)
+					where role.l = ?""", (e, ))
+	rels = []
+	for row in c:
+		rels += [row[0]]
+	c.close()
 
 	for rel in rels:
 		# Find the relations the entity is part of
@@ -221,6 +222,21 @@ def entity2serial(e, conn):
 		c.execute(f"""select rel.r, id.r from {rel} rel
 						join IdentityEScnn id on (rel.r = id.l)
 						where rel.l = ?""", (e, ))
+		serial += cursor2serial("IdentityES", c)
+		c.close()		
+
+		# Find the reverse relations the entity is part of
+		c = conn.cursor()
+		c.execute(f"""select rel.l, rel.r from {rel} rel
+						where rel.r = ?""", (e, ))
+		serial += cursor2serial(rel[:-3], c)
+		c.close()		
+
+		# Find the identity of reverse related entities
+		c = conn.cursor()
+		c.execute(f"""select rel.l, id.r from {rel} rel
+						join IdentityEScnn id on (rel.l = id.l)
+						where rel.r = ?""", (e, ))
 		serial += cursor2serial("IdentityES", c)
 		c.close()		
 
@@ -240,6 +256,47 @@ def entity2serial(e, conn):
 		serial += cursor2serial("ShapeES", c)
 		c.close()		
 
+	# Right relations
+	c = conn.cursor()
+	c.execute("""select rght.l from RoleEScnn role
+					join RightSScnn rght on (rght.r = role.r)
+					where role.l = ?""", (e, ))
+	rels = []
+	for row in c:
+		rels += [row[0]]
+	c.close()
+
+	for rel in rels:
+		# Find the reverse relations the entity is part of
+		c = conn.cursor()
+		c.execute(f"""select rel.l, rel.r from {rel} rel
+						where rel.r = ?""", (e, ))
+		serial += cursor2serial(rel[:-3], c)
+		c.close()
+
+		# Find the identity of reverse related entities
+		c = conn.cursor()
+		c.execute(f"""select rel.l, id.r from {rel} rel
+						join IdentityEScnn id on (rel.l = id.l)
+						where rel.r = ?""", (e, ))
+		serial += cursor2serial("IdentityES", c)
+		c.close()
+
+		c = conn.cursor()
+		c.execute(f"""select rel.r, color.r from ColorSScn1 color
+						join RoleEScnn role on (color.l = role.r)
+						join {rel} rel on (role.l = rel.r)
+						where rel.l = ?""", (e, ))
+		serial += cursor2serial("ColorES", c)
+		c.close()		
+
+		c = conn.cursor()
+		c.execute(f"""select rel.r, shape.r from ShapeSScn1 shape
+						join RoleEScnn role on (shape.l = role.r)
+						join {rel} rel on (role.l = rel.r)
+						where rel.l = ?""", (e, ))
+		serial += cursor2serial("ShapeES", c)
+		c.close()		
 	return serial
 
 ###
