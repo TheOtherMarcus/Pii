@@ -23,10 +23,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
- * @author    Marcus T. Andersson
- * @copyright Copyright 2020, Marcus T. Andersson
- * @license   MIT
- * @version   1
+ * @author        Marcus T. Andersson
+ * @copyright     Copyright 2020, Marcus T. Andersson
+ * @license       MIT
+ * @version       11
  */
 
 nodes = [];
@@ -200,20 +200,19 @@ function newNetwork() {
 			movement = {position: {x: params.pointer.canvas.x, y: params.pointer.canvas.y}, scale: 1, animation: { duration: 1000, easingFunction: "easeInOutQuad" } }
 			node = findNode(params.nodes[0]);
 			rows = node.label.split("\n");
-			if (findRow(rows, "Role").length == 0) {
-				node.label = " \n\n";
-				httpGetAsync("entity/" + params.nodes[0], parse_relations_and_move(movement));
-			}
-			else {
-				network.moveTo(movement);
-			}
+			network.moveTo(movement);
 		}
 	});
 	network.on("doubleClick", function (params) {
 		if (params.nodes.length > 0) {
+			movement = {position: {x: params.pointer.canvas.x, y: params.pointer.canvas.y}, scale: 1, animation: { duration: 1000, easingFunction: "easeInOutQuad" } }
 			node = findNode(params.nodes[0]);
 			rows = node.label.split("\n");
-			if (node.link && node.link.length > 0) {
+			if (findRow(rows, "Role").length == 0) {
+				node.label = " \n\n";
+				httpGetAsync("entity/" + params.nodes[0], parse_relations_and_move(movement));
+			}
+			else if (node.link && node.link.length > 0) {
 				window.open(node.link);
 			}
 		}

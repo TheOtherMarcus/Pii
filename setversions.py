@@ -30,7 +30,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "16"
+__version__ = "2"
 __maintainer__ = "Marcus T. Andersson"
 
 version = {}
@@ -54,7 +54,13 @@ for file in files:
 		with open(file) as f:
 			data = f.read()
 			f.close()
-			sed = pysed.main.Pysed(["", "", "", ""], data, file, True)
-			sed.pattern = '__version__ = .*'
-			sed.repl = f'__version__ = "{next_version}"'
-			sed.replaceText()
+			if file[-3:] == ".py":
+				sed = pysed.main.Pysed(["", "", "", ""], data, file, True)
+				sed.pattern = '^__version__ = .*'
+				sed.repl = f'__version__ = "{next_version}"'
+				sed.replaceText()
+			elif file[-3:] == ".js":
+				sed = pysed.main.Pysed(["", "", "", ""], data, file, True)
+				sed.pattern = '^ . @version       .*'
+				sed.repl = f' * @version       {next_version}'
+				sed.replaceText()
