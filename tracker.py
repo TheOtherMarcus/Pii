@@ -27,7 +27,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "11"
+__version__ = "12"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -237,14 +237,13 @@ def javascriptProperty(path, property):
 		line = f.readline()
 		while line:
 			if line[0:len(property)] == property:
-				return line.split(" ")[3].strip()
+				return "".join(line.split(" ")[3:]).strip()
 			line = f.readline()
 	return None
 
 def trackJavascriptFile(path):
 	statements = []
 	vnr = javascriptProperty(path, "@version")
-	print(vnr)
 	moduleName = os.path.basename(path)[0:-3] + " / javascript"
 	artifact = findArtifact(moduleName)
 	if not artifact:
