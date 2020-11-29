@@ -33,7 +33,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "7"
+__version__ = "8"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -104,10 +104,10 @@ statements += pii.model("BlueprintE -- ItemEEc1n -- ItemE")
 
 # A batch of Items is both a Blueprint and an Item
 
-# A Substrance is produced using a Recipe
-statements += pii.model("RecipeE -- SubstanceEEc1n -- SubstanceE")
-statements += pii.model("SubstranceE -- UnitEScn1")
-statements += pii.model("SubstanceE -- AmountERcn1")
+# A Produce (uncountable products) is produced using a Recipe
+statements += pii.model("RecipeE -- ProduceEEc1n -- ProduceE")
+statements += pii.model("ProduceE -- UnitEScn1")
+statements += pii.model("ProduceE -- AmountERcn1")
 
 # A batch of Substance is both a Recipe and a Substance
 
