@@ -27,7 +27,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "12"
+__version__ = "13"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -95,10 +95,10 @@ def newJavascriptArtifact(name):
 	(statements, artifact) = newArtifact(name)
 	return (statements, artifact)
 
-def link(l, rel, r):
+def link(l, rel, r, card="cnn"):
 	statements = []
 	c = pii.conn.cursor()
-	c.execute(f"""select rel.l, rel.r from {rel}cnn rel 
+	c.execute(f"""select rel.l, rel.r from {rel}{card} rel 
 					where rel.l = ?
 					and rel.r = ?
 					limit 1""", (l, r))
@@ -142,17 +142,7 @@ def trackFile(path, contenttype, mutable=None):
 		statements += pii.relate([constant, "CreationTimeES", mtime])
 		statements += pii.relate([constant, "ContentEB", sqlite3.Binary(open(path, "rb").read())])
 
-	c = pii.conn.cursor()
-	c.execute("""select content.l, content.r from ContentEEcnn content 
-					where content.l = ?
-					and content.r = ?
-					limit 1""", (mutable, constant))
-	content = None
-	for row in c:
-		content = row[0]
-	c.close()
-	if not content:
-		statements += pii.relate([mutable, "ContentEE", constant])
+	statements += link(mutable, "ContentEE", constant)
 
 	return (statements, mutable, constant)
 
@@ -217,17 +207,7 @@ def trackPythonFile(path):
 			(stmts, module) = newPythonArtifact(imp)
 			statements += stmts
 
-		c = pii.conn.cursor()
-		c.execute("""select module.l, module.r from ModuleEEcnn module 
-						where module.l = ?
-						and module.r = ?
-						limit 1""", (artifact, module))
-		rel = None
-		for row in c:
-			rel = row[0]
-		c.close()
-		if not rel:
-			statements += pii.relate([artifact, "ModuleEE", module])
+		statements += link(artifact, "ModuleEE", module)
 
 	return statements
 
