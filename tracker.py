@@ -27,7 +27,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "13"
+__version__ = "14"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -66,6 +66,20 @@ def findFile(path):
 
 def findArtifact(name):
 	return findEntity("ArtifactE", "IdentityEScn1", name)
+
+def findVersion(artifact, vnr):
+	c = pii.conn.cursor()
+	c.execute("""select version.l from VersionEcn version
+					join VersionEScn1 vnr on (version.l = vnr.l)
+					join VersionEE vrel on (version.l = vrel.r)
+					where vrel.l = ?
+					and vnr.r = ?
+					limit 1""", (artifact, vnr))
+	version = None
+	for row in c:
+		version = row[0]
+	c.close()
+	return version
 
 def newFile(path):
 	statements = []
@@ -180,22 +194,12 @@ def trackPythonFile(path):
 		(stmts, artifact) = newPythonArtifact(moduleName)
 		statements += stmts
 
-	c = pii.conn.cursor()
-	c.execute("""select version.l from VersionEcn version
-					join VersionNumberEScn1 vnr on (version.l = vnr.l)
-					join VersionEE vrel on (version.l = vrel.r)
-					where vrel.l = ?
-					and vnr.r = ?
-					limit 1""", (artifact, vnr))
-	mutable = None
-	for row in c:
-		mutable = row[0]
-	c.close()
+	mutable = findVersion(artifact, vnr)
 	if not mutable:
 		(stmts, mutable) = newFile(path)
 		statements += stmts
 		statements += pii.relate([mutable, "VersionE"])
-		statements += pii.relate([mutable, "VersionNumberES", vnr])
+		statements += pii.relate([mutable, "VersionES", vnr])
 		statements += pii.relate([artifact, "VersionEE", mutable])
 	(stmts, mutable, constant) = trackFile(path, "text/plain; charset=UTF-8", mutable=mutable)
 	statements += stmts
@@ -230,22 +234,12 @@ def trackJavascriptFile(path):
 		(stmts, artifact) = newJavascriptArtifact(moduleName)
 		statements += stmts
 
-	c = pii.conn.cursor()
-	c.execute("""select version.l from VersionEcn version
-					join VersionNumberEScn1 vnr on (version.l = vnr.l)
-					join VersionEE vrel on (version.l = vrel.r)
-					where vrel.l = ?
-					and vnr.r = ?
-					limit 1""", (artifact, vnr))
-	mutable = None
-	for row in c:
-		mutable = row[0]
-	c.close()
+	mutable = findVersion(artifact, vnr)
 	if not mutable:
 		(stmts, mutable) = newFile(path)
 		statements += stmts
 		statements += pii.relate([mutable, "VersionE"])
-		statements += pii.relate([mutable, "VersionNumberES", vnr])
+		statements += pii.relate([mutable, "VersionES", vnr])
 		statements += pii.relate([artifact, "VersionEE", mutable])
 	(stmts, mutable, constant) = trackFile(path, "text/plain; charset=UTF-8", mutable=mutable)
 	statements += stmts
