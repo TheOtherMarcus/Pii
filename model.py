@@ -1,33 +1,39 @@
-#
-# Product Information Index
-#
-# MIT License
-#
-# Copyright (c) 2020 Marcus T. Andersson
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+"""
+Product Information Index - Model
+
+An entity can be many things and take on many roles. This file defines the
+roles and relationships for a realistic Product Data Model (PDM). The model
+is used by the presentation layer to search for and display relationships. It
+does not prevent entities to be related in other ways as well.
+
+MIT License
+
+Copyright (c) 2020 Marcus T. Andersson
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
 
 __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "6"
+__version__ = "7"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -104,5 +110,16 @@ statements += pii.model("SubstranceE -- UnitEScn1")
 statements += pii.model("SubstanceE -- AmountERcn1")
 
 # A batch of Substance is both a Recipe and a Substance
+
+# A Specification is realized in an Implementation and verified with a Test
+statements += pii.model("SpecificationE -- ImplementationEEcnn -- ImplementationE")
+statements += pii.model("SpecificationE -- TestEEcnn -- TestE")
+
+# Performing a Test on an Implementation yields a TestResult
+statements += pii.model("TestResultE -- ImplementationEEcn1 -- ImplementationE")
+statements += pii.model("TestResultE -- TestEEcn1 -- TestE")
+
+# A Guide tells you how to use an Appliance 
+statements += pii.model("ApplianceE -- GuideEEcnn -- GuideE")
 
 pii.execute(statements)
