@@ -30,7 +30,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "17"
+__version__ = "18"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -171,6 +171,8 @@ def trackFile(path, contenttype, mutable=None):
 
 	return (statements, mutable, constant)
 
+# trackVersion() differs from trackFile() as it creates a new
+# entity for each new version of the file it finds.
 def trackVersion(path, vnr, moduleName, newArtifactFn, contentType):
 	statements = []
 	artifact = findArtifact(moduleName)
@@ -188,7 +190,7 @@ def trackVersion(path, vnr, moduleName, newArtifactFn, contentType):
 	(stmts, mutable, constant) = trackFile(path, contentType, mutable=mutable)
 	statements += stmts
 
-	return (statements, mutable)
+	return (statements, artifact, mutable, constant)
 
 def pythonProperty(path, property):
 	with open(path) as f:
@@ -210,30 +212,12 @@ def pythonImports(path):
 			line = f.readline()
 	return imports
 
-# trackPythonFile() differs from trackFile() as it creates a new
-# entity for each new version of the file it finds. The version is
-# specified with the Python variable __version__ found in the file.
-# It also parses the import statements and adds dependencies
 def trackPythonFile(path):
-	statements = []
 	vnr = pythonProperty(path, "__version__")
-	imports = pythonImports(path)
 	moduleName = os.path.basename(path)[0:-3] + " / python"
-	artifact = findArtifact(moduleName)
-	if not artifact:
-		(stmts, artifact) = newPythonArtifact(moduleName)
-		statements += stmts
+	(statements, artifact, mutable, constant) = trackVersion(path, vnr, moduleName, newPythonArtifact, "text/plain; charset=UTF-8")
 
-	mutable = findVersion(artifact, vnr)
-	if not mutable:
-		(stmts, mutable) = newFile(path)
-		statements += stmts
-		statements += pii.relate([mutable, "VersionE"])
-		statements += pii.relate([mutable, "VersionES", vnr])
-		statements += pii.relate([artifact, "VersionEE", mutable])
-	(stmts, mutable, constant) = trackFile(path, "text/plain; charset=UTF-8", mutable=mutable)
-	statements += stmts
-
+	imports = pythonImports(path)
 	for imp in imports:
 		imp = imp + " / python"
 		module = findArtifact(imp)
@@ -256,24 +240,9 @@ def javascriptProperty(path, property):
 	return None
 
 def trackJavascriptFile(path):
-	statements = []
 	vnr = javascriptProperty(path, "@version")
 	moduleName = os.path.basename(path)[0:-3] + " / javascript"
-	artifact = findArtifact(moduleName)
-	if not artifact:
-		(stmts, artifact) = newJavascriptArtifact(moduleName)
-		statements += stmts
-
-	mutable = findVersion(artifact, vnr)
-	if not mutable:
-		(stmts, mutable) = newFile(path)
-		statements += stmts
-		statements += pii.relate([mutable, "VersionE"])
-		statements += pii.relate([mutable, "VersionES", vnr])
-		statements += pii.relate([artifact, "VersionEE", mutable])
-	(stmts, mutable, constant) = trackFile(path, "text/plain; charset=UTF-8", mutable=mutable)
-	statements += stmts
-
+	(statements, artifacr, mutable, constant) = trackVersion(path, vnr, moduleName, newJavascriptArtifact, "text/plain; charset=UTF-8")
 	return statements
 
 def textProperty(path, property):
@@ -311,6 +280,6 @@ piijs = findArtifact("pii / javascript")
 pii.execute(link(piipy, "ModuleEE", piijs))
 pii.execute(link(piijs, "ModuleEE", piipy))
 
-(stmts, mutable) = trackSpecification("./requirements.txt")
+(stmts, artifact, mutable, constant) = trackSpecification("./requirements.txt")
 pii.execute(stmts)
 pii.execute(trackRequirements(mutable))
