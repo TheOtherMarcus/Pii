@@ -30,7 +30,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "15"
+__version__ = "16"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -39,6 +39,9 @@ import datetime
 import os
 import uuid
 import sqlite3
+
+# This updates the version of changed files.
+import setversions
 
 ###
 ### Tracker functions
@@ -65,7 +68,7 @@ def findEntity(role, rel, value):
 	return entity
 
 def findFile(path):
-	return findEntity("FileS", "PathEScn1", path)
+	return findEntity("FileE", "PathEScn1", path)
 
 def findArtifact(name):
 	return findEntity("ArtifactE", "IdentityEScn1", name)
@@ -249,6 +252,10 @@ def trackJavascriptFile(path):
 
 	return statements
 
+def trackRequirements(spec_mutable, spec_constant):
+	statements = []
+	return []
+
 ###
 ### Track project
 
@@ -264,3 +271,7 @@ piipy = findArtifact("pii / python")
 piijs = findArtifact("pii / javascript")
 pii.execute(link(piipy, "ModuleEE", piijs))
 pii.execute(link(piijs, "ModuleEE", piipy))
+
+(stmts, mutable, constant) = trackFile("./requirements.txt", "text/plain; charset=UTF-8")
+pii.execute(stmts)
+pii.execute(trackRequirements(mutable, constant))

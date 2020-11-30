@@ -1,8 +1,9 @@
 """
-Product Information Index
+Product Information Index - Set Versions
 
 This program should be run before 'git add'. It will update modified files
-and set the next version number.
+with the next version number based on the number of git commits that exists
+of the file.
 
 The script does not support git branches directly. If you for example create
 a branch on version 5 then you should update this script to write versions
@@ -11,6 +12,13 @@ on the form 5.x.
 A second branch on version 5 should have version numberson on the form 5.0.x,
 see https://formallanguage.blogspot.com/2019/05/version-numbers.html for a
 more extensive explanation of my view on version numbers.
+
+This method of version updating works well for demonstration purposes in this
+setting with the Pii tracker, but is not how I typically would do it. I would
+leave the version blank in Git and use a delivery script that exported the
+files and updated the version in the files based on the number of Git commits
+and branch. I would have a tracker.py with direct access to the files in Git
+instead of the local copy.
 
 MIT License
 
@@ -42,7 +50,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "3"
+__version__ = "4"
 __maintainer__ = "Marcus T. Andersson"
 
 version = {}

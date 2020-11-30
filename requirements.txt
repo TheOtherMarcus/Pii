@@ -1,0 +1,20 @@
+
+Product Information Index: Requirements Specification
+=====================================================
+
+R1/v1: Relations
+It shall be possible to define unary and binary relations in Pii.
+
+R2/v1: Types
+The column types shall be UUID, String, Timestamp, Binary, Integer and Real.
+
+R3/v1: Display color
+It shall be possible to change the color of a role. Entities that
+belong to the role will be displayed in that color.
+
+R4/v1: Display shape
+It shall be possible to change the shape of a role. Entities that
+belong to the role will be displayed with that shape.
+
+R5/v1: Traceability
+It shall be possible to find requirements that haven't been implemented yet.
