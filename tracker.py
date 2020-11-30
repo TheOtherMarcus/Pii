@@ -30,7 +30,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "16"
+__version__ = "17"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -115,6 +115,11 @@ def newJavascriptArtifact(name):
 	(statements, artifact) = newArtifact(name)
 	return (statements, artifact)
 
+def newSpecificationArtifact(name):
+	(statements, artifact) = newArtifact(name)
+	statements += pii.relate([artifact, "SpecificationE"])
+	return (statements, artifact)
+
 def link(l, rel, r, card="cnn"):
 	statements = []
 	c = pii.conn.cursor()
@@ -165,6 +170,25 @@ def trackFile(path, contenttype, mutable=None):
 	statements += link(mutable, "ContentEE", constant)
 
 	return (statements, mutable, constant)
+
+def trackVersion(path, vnr, moduleName, newArtifactFn, contentType):
+	statements = []
+	artifact = findArtifact(moduleName)
+	if not artifact:
+		(stmts, artifact) = newArtifactFn(moduleName)
+		statements += stmts
+
+	mutable = findVersion(artifact, vnr)
+	if not mutable:
+		(stmts, mutable) = newFile(path)
+		statements += stmts
+		statements += pii.relate([mutable, "VersionE"])
+		statements += pii.relate([mutable, "VersionES", vnr])
+		statements += pii.relate([artifact, "VersionEE", mutable])
+	(stmts, mutable, constant) = trackFile(path, contentType, mutable=mutable)
+	statements += stmts
+
+	return (statements, mutable)
 
 def pythonProperty(path, property):
 	with open(path) as f:
@@ -252,12 +276,27 @@ def trackJavascriptFile(path):
 
 	return statements
 
-def trackRequirements(spec_mutable, spec_constant):
+def textProperty(path, property):
+	property = property + ": "
+	with open(path) as f:
+		line = f.readline()
+		while line:
+			if line[0:len(property)] == property:
+				return "".join(line.split(" ")[1:]).strip()
+			line = f.readline()
+	return None
+
+def trackSpecification(path):
+	vnr = textProperty(path, "Version")
+	moduleName = os.path.basename(path)[0:-4] + " / text"
+	return trackVersion(path, vnr, moduleName, newSpecificationArtifact, "text/plain; charset=UTF-8")
+
+def trackRequirements(spec_mutable):
 	statements = []
 	return []
 
 ###
-### Track project
+### Track Pii project
 
 pii.execute(trackPythonFile("./pii.py"))
 pii.execute(trackPythonFile("./model.py"))
@@ -272,6 +311,6 @@ piijs = findArtifact("pii / javascript")
 pii.execute(link(piipy, "ModuleEE", piijs))
 pii.execute(link(piijs, "ModuleEE", piipy))
 
-(stmts, mutable, constant) = trackFile("./requirements.txt", "text/plain; charset=UTF-8")
+(stmts, mutable) = trackSpecification("./requirements.txt")
 pii.execute(stmts)
-pii.execute(trackRequirements(mutable, constant))
+pii.execute(trackRequirements(mutable))
