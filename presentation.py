@@ -30,7 +30,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "11"
+__version__ = "12"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -45,5 +45,7 @@ statements += pii.relate(["VersionE", "ColorSS", "lightgreen"])
 statements += pii.relate(["MutableE", "ShapeSS", "box"])
 statements += pii.relate(["ConstantE", "ShapeSS", "box"])
 statements += pii.relate(["ConstantE", "ColorSS", "white"])
+
+statements += pii.relate(["SpecificationE", "ColorSS", "orange"])
 
 pii.execute(statements)

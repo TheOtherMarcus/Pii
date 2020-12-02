@@ -30,7 +30,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "18"
+__version__ = "19"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -46,13 +46,16 @@ import setversions
 ###
 ### Tracker functions
 
-def sha256sum(filename):
+def sha256sum(filename, value=False):
     h  = hashlib.sha256()
-    b  = bytearray(128*1024)
-    mv = memoryview(b)
-    with open(filename, 'rb', buffering=0) as f:
-        for n in iter(lambda : f.readinto(mv), 0):
-            h.update(mv[:n])
+    if value:
+    	h.update(filename.encode())
+    else:
+	    b  = bytearray(128*1024)
+	    mv = memoryview(b)
+	    with open(filename, 'rb', buffering=0) as f:
+	        for n in iter(lambda : f.readinto(mv), 0):
+	            h.update(mv[:n])
     return h.hexdigest()
 
 def findEntity(role, rel, value):
@@ -73,6 +76,9 @@ def findFile(path):
 def findArtifact(name):
 	return findEntity("ArtifactE", "IdentityEScn1", name)
 
+def findMutable(name):
+	return findEntity("MutableE", "IdentityEScn1", name)
+
 def findVersion(artifact, vnr):
 	c = pii.conn.cursor()
 	c.execute("""select version.l from VersionEcn version
@@ -87,14 +93,42 @@ def findVersion(artifact, vnr):
 	c.close()
 	return version
 
-def newFile(path):
+def getContent(constant):
+	content = None
+	c = pii.conn.cursor()
+	c.execute(f"""select content.r from ContentEBcn1 content
+					where content.l = ?
+					limit 1""", (constant, ))
+	for row in c:
+		content = row[0]
+	c.close()
+	return content
+
+def getCreationTime(constant):
+	mtime = None
+	c = pii.conn.cursor()
+	c.execute(f"""select content.r from CreationTimeEScn1 content
+					where content.l = ?
+					limit 1""", (constant, ))
+	for row in c:
+		mtime = row[0]
+	c.close()
+	return mtime
+
+def newMutable(name):
 	statements = []
 	mutable = str(uuid.uuid4())
 	statements += pii.relate([mutable, "EntityE"])
-	statements += pii.relate([mutable, "IdentityES", os.path.basename(path)])		
+	statements += pii.relate([mutable, "IdentityES", name])
+	statements += pii.relate([mutable, "MutableE"])
+	return (statements, mutable)	
+
+def newFile(path):
+	statements = []
+	(stmts, mutable) = newMutable(os.path.basename(path))
+	statements += stmts
 	statements += pii.relate([mutable, "FileE"])
 	statements += pii.relate([mutable, "PathES", path])
-	statements += pii.relate([mutable, "MutableE"])
 	return (statements, mutable)	
 
 def newArtifact(name):
@@ -120,7 +154,34 @@ def newSpecificationArtifact(name):
 	statements += pii.relate([artifact, "SpecificationE"])
 	return (statements, artifact)
 
+def newRequirementArtifact(name):
+	(statements, artifact) = newSpecificationArtifact(name)
+	statements += pii.relate([artifact, "RequirementE"])
+	return (statements, artifact)
+
+def role(entity, roles):
+	if not entity:
+		raise PiiException("role(): entity is null")
+	statements = []
+	if isinstance(roles, str):
+		roles = [roles]
+	c = pii.conn.cursor()
+	c.execute("""select role.r from RoleEScnn role 
+					where role.l = ?""", (entity, ))
+	existing = []
+	for row in c:
+		existing += [row[0]]
+	c.close()
+	for role in roles:
+		if not role in existing:
+			statements += pii.relate([entity, role])
+	return statements
+
 def link(l, rel, r, card="cnn"):
+	if not l:
+		raise PiiException("link(): l is null")
+	if not r:
+		raise PiiException("link(): r is null")
 	statements = []
 	c = pii.conn.cursor()
 	c.execute(f"""select rel.l, rel.r from {rel}{card} rel 
@@ -171,6 +232,42 @@ def trackFile(path, contenttype, mutable=None):
 
 	return (statements, mutable, constant)
 
+def trackEmbedded(value, moduleName, contenttype, mtime, mutable=None):
+	statements = []
+	if not mutable:
+		mutable = findMutable(moduleName)
+	if not mutable:
+		(stmts, mutable) = newMutable(moduleName)
+		statements += stmts
+
+	sha = sha256sum(value, value=True)
+
+	c = pii.conn.cursor()
+	c.execute("""select constant.l from ConstantEcn constant
+					left join ShaEScn1 sha on (constant.l = sha.l)
+					left join ContentTypeEScn1 contenttype on (constant.l = contenttype.l)
+					where sha.r = ?
+					and contenttype.r = ?
+					limit 1""", (sha, contenttype))
+	constant = None
+	for row in c:
+		constant = row[0]
+	c.close()
+	if not constant:
+		constant = str(uuid.uuid4())
+		statements += pii.relate([constant, "EntityE"])
+		statements += pii.relate([constant, "IdentityES", moduleName + " " + mtime])		
+		statements += pii.relate([constant, "ConstantE"])
+		statements += pii.relate([constant, "ShaES", sha])
+		statements += pii.relate([constant, "ContentTypeES", contenttype])
+		statements += pii.relate([constant, "CreationTimeES", mtime])
+		statements += pii.relate([constant, "ContentEB", sqlite3.Binary(value.encode())])
+		statements += pii.relate([constant, "EmbeddedE"])
+
+	statements += link(mutable, "ContentEE", constant)
+
+	return (statements, mutable, constant)
+
 # trackVersion() differs from trackFile() as it creates a new
 # entity for each new version of the file it finds.
 def trackVersion(path, vnr, moduleName, newArtifactFn, contentType):
@@ -188,6 +285,26 @@ def trackVersion(path, vnr, moduleName, newArtifactFn, contentType):
 		statements += pii.relate([mutable, "VersionES", vnr])
 		statements += pii.relate([artifact, "VersionEE", mutable])
 	(stmts, mutable, constant) = trackFile(path, contentType, mutable=mutable)
+	statements += stmts
+
+	return (statements, artifact, mutable, constant)
+
+def trackEmbeddedVersion(value, vnr, req, title, newArtifactFn, contentType, mtime):
+	statements = []
+	artifact = findArtifact(f"{req}: {title}")
+	if not artifact:
+		(stmts, artifact) = newArtifactFn(f"{req}: {title}")
+		statements += pii.relate([artifact, "EmbeddedE"])
+		statements += stmts
+
+	mutable = findVersion(artifact, vnr)
+	if not mutable:
+		(stmts, mutable) = newMutable(f"{req}/v{vnr}: {title}")
+		statements += stmts
+		statements += role(mutable, ["VersionE", "EmbeddedE"])
+		statements += link(mutable, "VersionES", vnr)
+	statements += link(artifact, "VersionEE", mutable)
+	(stmts, mutable, constant) = trackEmbedded(value, f"{req}/v{vnr}: {title}", contentType, mtime, mutable=mutable)
 	statements += stmts
 
 	return (statements, artifact, mutable, constant)
@@ -255,14 +372,57 @@ def textProperty(path, property):
 			line = f.readline()
 	return None
 
+def textTitle(path):
+	with open(path) as f:
+		line = f.readline()
+		while line:
+			line = line.strip()
+			if len(line)> 0:
+				return line
+			line = f.readline()
+	return path
+
 def trackSpecification(path):
 	vnr = textProperty(path, "Version")
-	moduleName = os.path.basename(path)[0:-4] + " / text"
-	return trackVersion(path, vnr, moduleName, newSpecificationArtifact, "text/plain; charset=UTF-8")
+	title = textTitle(path)
+	return trackVersion(path, vnr, title, newSpecificationArtifact, "text/plain; charset=UTF-8")
 
-def trackRequirements(spec_mutable):
+def parseRequirement(line):
+	vstart = line.find("/v")
+	if line[0] == "R" and vstart > 1:
+		return (line.split("/")[0], line.split(":")[0].split("v")[1], "".join(line.split(" ")[1:]))
+	else:
+		return (None, None, None)
+
+def trackRequirement(container_artifact, container_mutable, container_constant, req, vnr, title, body):
+	mtime = getCreationTime(container_constant)
+	(statements, artifact, mutable, constant) = trackEmbeddedVersion(body, vnr, req, title, newSpecificationArtifact, "text/plain; charset=UTF-8", mtime)
+	statements += link(container_artifact, "EmbeddedEE", artifact)
+	statements += link(container_mutable, "EmbeddedEE", mutable)
+	statements += link(container_constant, "EmbeddedEE", constant)
+	return statements
+
+def trackRequirements(container_artifact, container_mutable, container_constant):
 	statements = []
-	return []
+	statements += role(container_artifact, "ContainerE")
+	statements += role(container_mutable, "ContainerE")
+	statements += role(container_constant, "ContainerE")
+	content = getContent(container_constant).decode("utf-8")
+	req = None
+	body = ""
+	for line in content.split("\n"):
+		line = line.strip()
+		if len(line) > 0 and not req:
+			(req, vnr, title) = parseRequirement(line)
+		elif req:
+			if len(line) > 0:
+				body += line + "\n"
+			else:
+				statements += trackRequirement(container_artifact, container_mutable, container_constant, req, vnr, title, body)
+				req = None
+				body = ""
+
+	return statements
 
 ###
 ### Track Pii project
@@ -272,6 +432,7 @@ pii.execute(trackPythonFile("./model.py"))
 pii.execute(trackPythonFile("./presentation.py"))
 pii.execute(trackPythonFile("./tracker.py"))
 pii.execute(trackPythonFile("./q_files.py"))
+pii.execute(trackPythonFile("./q_spec.py"))
 pii.execute(trackPythonFile("./setversions.py"))
 pii.execute(trackJavascriptFile("./pii.js"))
 
@@ -282,4 +443,4 @@ pii.execute(link(piijs, "ModuleEE", piipy))
 
 (stmts, artifact, mutable, constant) = trackSpecification("./requirements.txt")
 pii.execute(stmts)
-pii.execute(trackRequirements(mutable))
+pii.execute(trackRequirements(artifact, mutable, constant))
