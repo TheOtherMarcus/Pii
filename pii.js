@@ -28,12 +28,13 @@
  * @author        Marcus T. Andersson
  * @copyright     Copyright 2020, Marcus T. Andersson
  * @license       MIT
- * @version       13
+ * @version       14
  */
 
 nodes = [];
 edges = [];
 network = null;
+click = 0;
 
 function findNode(id) {
 	var found = null;
@@ -156,7 +157,7 @@ function parse_relations_and_move(nodeid) {
 			movement = {position: {x: network.body.nodes[nodeid].x, y: network.body.nodes[nodeid].y}, scale: 1, animation: { duration: 1000, easingFunction: "easeInOutQuad" } }
 			console.log(movement)
 			network.moveTo(movement);
-		}, 100);
+		}, 200);
 	};
 }
 
@@ -201,7 +202,26 @@ function newNetwork() {
 		interaction: { navigationButtons: true },
 	};
 	network = new vis.Network(container, data, options);
+	network.on("click", function (params) {
+		click = 1;
+		nodeid = params.nodes[0]
+		node = findNode(nodeid);
+		if (params.event.srcEvent.altKey) {
+			if (node.link && node.link.length > 0) {
+				window.open(node.link);
+			}
+		}
+		else if (params.nodes.length > 0) {
+			movement = {position: {x: network.body.nodes[nodeid].x, y: network.body.nodes[nodeid].y}, animation: { duration: 1000, easingFunction: "easeInOutQuad" } }
+			window.setTimeout(function() {
+				if (click == 1) {
+					network.moveTo(movement);
+				}
+			}, 200);
+		}
+	});
 	network.on("doubleClick", function (params) {
+		click = 2;
 		if (params.nodes.length > 0) {
 			nodeid = params.nodes[0]
 			node = findNode(nodeid);
@@ -211,12 +231,10 @@ function newNetwork() {
 				httpGetAsync("entity/" + nodeid, parse_relations_and_move(nodeid));
 			}
 			else {
-				movement = {position: {x: params.pointer.canvas.x, y: params.pointer.canvas.y}, scale: 1, animation: { duration: 1000, easingFunction: "easeInOutQuad" } }
-				console.log(movement)
+			movement = {position: {x: network.body.nodes[nodeid].x, y: network.body.nodes[nodeid].y}, scale: 1, animation: { duration: 1000, easingFunction: "easeInOutQuad" } }
+			window.setTimeout(function() {
 				network.moveTo(movement);
-				if (node.link && node.link.length > 0) {
-					window.open(node.link);
-				}
+			}, 200);				
 			}
 		}
 	});
