@@ -28,7 +28,7 @@
  * @author        Marcus T. Andersson
  * @copyright     Copyright 2020, Marcus T. Andersson
  * @license       MIT
- * @version       12
+ * @version       13
  */
 
 nodes = [];
@@ -149,10 +149,14 @@ function parse_relations(text) {
 	}
 }
 
-function parse_relations_and_move(movement) {
+function parse_relations_and_move(nodeid) {
 	return function (text) {
 		parse_relations(text);
-		network.moveTo(movement);
+		window.setTimeout(function() {
+			movement = {position: {x: network.body.nodes[nodeid].x, y: network.body.nodes[nodeid].y}, scale: 1, animation: { duration: 1000, easingFunction: "easeInOutQuad" } }
+			console.log(movement)
+			network.moveTo(movement);
+		}, 100);
 	};
 }
 
@@ -197,25 +201,22 @@ function newNetwork() {
 		interaction: { navigationButtons: true },
 	};
 	network = new vis.Network(container, data, options);
-	network.on("click", function (params) {
-		if (params.nodes.length > 0) {
-			movement = {position: {x: params.pointer.canvas.x, y: params.pointer.canvas.y}, scale: 1, animation: { duration: 1000, easingFunction: "easeInOutQuad" } }
-			node = findNode(params.nodes[0]);
-			rows = node.label.split("\n");
-			network.moveTo(movement);
-		}
-	});
 	network.on("doubleClick", function (params) {
 		if (params.nodes.length > 0) {
-			movement = {position: {x: params.pointer.canvas.x, y: params.pointer.canvas.y}, scale: 1, animation: { duration: 1000, easingFunction: "easeInOutQuad" } }
-			node = findNode(params.nodes[0]);
+			nodeid = params.nodes[0]
+			node = findNode(nodeid);
 			rows = node.label.split("\n");
 			if (findRow(rows, "Role").length == 0) {
 				node.label = " \n\n";
-				httpGetAsync("entity/" + params.nodes[0], parse_relations_and_move(movement));
+				httpGetAsync("entity/" + nodeid, parse_relations_and_move(nodeid));
 			}
-			else if (node.link && node.link.length > 0) {
-				window.open(node.link);
+			else {
+				movement = {position: {x: params.pointer.canvas.x, y: params.pointer.canvas.y}, scale: 1, animation: { duration: 1000, easingFunction: "easeInOutQuad" } }
+				console.log(movement)
+				network.moveTo(movement);
+				if (node.link && node.link.length > 0) {
+					window.open(node.link);
+				}
 			}
 		}
 	});
