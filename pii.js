@@ -28,7 +28,7 @@
  * @author        Marcus T. Andersson
  * @copyright     Copyright 2020, Marcus T. Andersson
  * @license       MIT
- * @version       14
+ * @version       15
  */
 
 nodes = [];
@@ -45,7 +45,7 @@ function findNode(id) {
 		}
 	}
 	if (found == null) {
-		found = {id: id, font: { multi: "html", size: 12 }, label: " \n\n", shape: "box" };
+		found = {id: id, font: { multi: "html", size: 12 }, label: " \n\n", shape: "dot" };
 		nodes.push(found)
 	}
 	return found;
@@ -70,38 +70,54 @@ function findRow(rows, prop) {
 	return "";
 }
 
+function addNodeProp(node, rows, key, text) {
+	if (key == "RoleES") {
+		text = text.slice(0, -1);
+	}
+	if (key.slice(-1, key.length) == "B") {
+		node.link = text;
+		node.shapeProperties = { borderDashes: [5, 5] };
+	}
+	rowtext = findRow(rows, prop);
+	if (rowtext.length == 0) {
+		rowtext = text;
+	}
+	else if (rowtext.slice(0, 1) != "[") {
+		rowtext = "[ " + text + ", " + rowtext + " ]";
+	}
+	else {
+		rowtext = "[ " + text + ", " + rowtext.slice(2, rowtext.length);			
+	}
+	replaceRow(rows, prop, rowtext);
+}
+
 function addNodeText(id, key, text) {
 	node = findNode(id);
 	prop = key.slice(0, -2);
 	rows = node.label.split("\n");
 	rows.pop()
-	if (key == "IdentityES") {
-		rows[0] = "<b>" + text + "</b>";
+	if (key == "LabelES") {
+		if (node.shape == "dot") {
+			rows[0] = "<b>" + text + "</b>";
+		}
+	}
+	else if (key == "IdentityES") {
+		node.title = text;
+		if (node.shape != "dot") {
+			rows[0] = "<b>" + text + "</b>";
+		} 
 	}
 	else if (key == "ShapeES") {
-		node.shape = text
+		node.shape = text;
+		if (node.title) {
+			rows[0] = "<b>" + node.title + "</b>";
+		}
 	}
 	else if (key == "ColorES") {
 		node.color = {background: text, border: "black"}
 	}
 	else {
-		if (key == "RoleES") {
-			text = text.slice(0, -1);
-		}
-		if (key.slice(-1, key.length) == "B") {
-			node.link = text;
-		}
-		rowtext = findRow(rows, prop);
-		if (rowtext.length == 0) {
-			rowtext = text;
-		}
-		else if (rowtext.slice(0, 1) != "[") {
-			rowtext = "[ " + text + ", " + rowtext + " ]";
-		}
-		else {
-			rowtext = "[ " + text + ", " + rowtext.slice(2, rowtext.length);			
-		}
-		replaceRow(rows, prop, rowtext);
+		addNodeProp(node, rows, key, text);
 	}
 	node.label = ""
 	for (row of rows) {
@@ -190,7 +206,7 @@ function newNetwork() {
 		physics: {
             forceAtlas2Based: {
               gravitationalConstant: -26,
-              centralGravity: 0.005,
+              centralGravity: 0.001,
               springLength: 230,
               springConstant: 0.18,
             },
@@ -231,10 +247,8 @@ function newNetwork() {
 				httpGetAsync("entity/" + nodeid, parse_relations_and_move(nodeid));
 			}
 			else {
-			movement = {position: {x: network.body.nodes[nodeid].x, y: network.body.nodes[nodeid].y}, scale: 1, animation: { duration: 1000, easingFunction: "easeInOutQuad" } }
-			window.setTimeout(function() {
+				movement = {position: {x: network.body.nodes[nodeid].x, y: network.body.nodes[nodeid].y}, scale: 1, animation: { duration: 1000, easingFunction: "easeInOutQuad" } }
 				network.moveTo(movement);
-			}, 200);				
 			}
 		}
 	});

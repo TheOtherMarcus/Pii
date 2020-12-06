@@ -40,7 +40,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "19"
+__version__ = "20"
 __maintainer__ = "Marcus T. Andersson"
 
 dbfile = 'pii.sqlite3'
@@ -189,9 +189,20 @@ def entity2serial(e, conn):
 	c.close()
 
 	c = conn.cursor()
-	c.execute("""select role.l, color.r from ColorSScn1 color
-					join RoleEScnn role on (color.l = role.r)
-					where role.l = ?""", (e, ))
+	c.execute("""select coalesce(red.l, green.l, blue.l, "0"), printf("#%02x%02x%02x", ifnull(red.r, 255), ifnull(green.r, 255), ifnull(blue.r, 255))
+					from
+						(select role.l as l, sum(red.r)/count(red.r) as r
+							from RoleEScnn role
+							join RedSIcn1 red on (role.r = red.l)
+							where role.l = ?) as red,
+						(select role.l as l, sum(green.r)/count(green.r) as r
+							from RoleEScnn role
+							join GreenSIcn1 green on (role.r = green.l)
+							where role.l = ?) as green,
+						(select role.l as l, sum(blue.r)/count(blue.r) as r
+							from RoleEScnn role
+							join BlueSIcn1 blue on (role.r = blue.l)
+							where role.l = ?) as blue""", (e, e, e))
 	serial += cursor2serial("ColorES", c)
 	c.close()		
 
@@ -220,44 +231,55 @@ def entity2serial(e, conn):
 		serial += cursor2serial(rel[:-3], c)
 		c.close()		
 
-		# Find the identity of related entities
-		c = conn.cursor()
-		c.execute(f"""select rel.r, id.r from {rel} rel
-						join IdentityEScnn id on (rel.r = id.l)
-						where rel.l = ?""", (e, ))
-		serial += cursor2serial("IdentityES", c)
-		c.close()		
+		if rel[-4:-3] == "E":
+			# Find the label of related entities
+			c = conn.cursor()
+			c.execute(f"""select rel.r, id.r from {rel} rel
+							join LabelEScnn id on (rel.r = id.l)
+							where rel.l = ?""", (e, ))
+			serial += cursor2serial("LabelES", c)
+			c.close()
 
-		# Find the reverse relations the entity is part of
-		c = conn.cursor()
-		c.execute(f"""select rel.l, rel.r from {rel} rel
-						where rel.r = ?""", (e, ))
-		serial += cursor2serial(rel[:-3], c)
-		c.close()		
+			# Find the identity of related entities
+			c = conn.cursor()
+			c.execute(f"""select rel.r, id.r from {rel} rel
+							join IdentityEScnn id on (rel.r = id.l)
+							where rel.l = ?""", (e, ))
+			serial += cursor2serial("IdentityES", c)
+			c.close()
 
-		# Find the identity of reverse related entities
-		c = conn.cursor()
-		c.execute(f"""select rel.l, id.r from {rel} rel
-						join IdentityEScnn id on (rel.l = id.l)
-						where rel.r = ?""", (e, ))
-		serial += cursor2serial("IdentityES", c)
-		c.close()		
+			c = conn.cursor()
+			c.execute(f"""select coalesce(red.l, green.l, blue.l, "0"), printf("#%02x%02x%02x", ifnull(red.r, 255), ifnull(green.r, 255), ifnull(blue.r, 255))
+							from
+								(select rel.r as l, sum(red.r)/count(red.r) as r
+									from RoleEScnn role
+									join RedSIcn1 red on (role.r = red.l)
+									join {rel} rel on (role.l = rel.r)
+									where rel.l = ?
+									group by rel.r) as red,
+								(select rel.r as l, sum(green.r)/count(green.r) as r
+									from RoleEScnn role
+									join GreenSIcn1 green on (role.r = green.l)
+									join {rel} rel on (role.l = rel.r)
+									where rel.l = ?
+									group by rel.r) as green,
+								(select rel.r as l, sum(blue.r)/count(blue.r) as r
+									from RoleEScnn role
+									join BlueSIcn1 blue on (role.r = blue.l)
+									join {rel} rel on (role.l = rel.r)
+									where rel.l = ?
+									group by rel.r) as blue
+								where red.l = green.l and green.l = blue.l""", (e, e, e))
+			serial += cursor2serial("ColorES", c)
+			c.close()		
 
-		c = conn.cursor()
-		c.execute(f"""select rel.r, color.r from ColorSScn1 color
-						join RoleEScnn role on (color.l = role.r)
-						join {rel} rel on (role.l = rel.r)
-						where rel.l = ?""", (e, ))
-		serial += cursor2serial("ColorES", c)
-		c.close()		
-
-		c = conn.cursor()
-		c.execute(f"""select rel.r, shape.r from ShapeSScn1 shape
-						join RoleEScnn role on (shape.l = role.r)
-						join {rel} rel on (role.l = rel.r)
-						where rel.l = ?""", (e, ))
-		serial += cursor2serial("ShapeES", c)
-		c.close()		
+#			c = conn.cursor()
+#			c.execute(f"""select rel.r, shape.r from ShapeSScn1 shape
+#							join RoleEScnn role on (shape.l = role.r)
+#							join {rel} rel on (role.l = rel.r)
+#							where rel.l = ?""", (e, ))
+#			serial += cursor2serial("ShapeES", c)
+#			c.close()		
 
 	# Right relations
 	c = conn.cursor()
@@ -277,6 +299,14 @@ def entity2serial(e, conn):
 		serial += cursor2serial(rel[:-3], c)
 		c.close()
 
+		# Find the label of related entities
+		c = conn.cursor()
+		c.execute(f"""select rel.l, id.r from {rel} rel
+						join LabelEScnn id on (rel.l = id.l)
+						where rel.r = ?""", (e, ))
+		serial += cursor2serial("LabelES", c)
+		c.close()
+
 		# Find the identity of reverse related entities
 		c = conn.cursor()
 		c.execute(f"""select rel.l, id.r from {rel} rel
@@ -286,20 +316,37 @@ def entity2serial(e, conn):
 		c.close()
 
 		c = conn.cursor()
-		c.execute(f"""select rel.r, color.r from ColorSScn1 color
-						join RoleEScnn role on (color.l = role.r)
-						join {rel} rel on (role.l = rel.r)
-						where rel.l = ?""", (e, ))
+		c.execute(f"""select coalesce(red.l, green.l, blue.l, "0"), printf("#%02x%02x%02x", ifnull(red.r, 255), ifnull(green.r, 255), ifnull(blue.r, 255))
+						from
+							(select rel.l as l, sum(red.r)/count(red.r) as r
+								from RoleEScnn role
+								join RedSIcn1 red on (role.r = red.l)
+								join {rel} rel on (role.l = rel.l)
+								where rel.r = ?
+								group by rel.l) as red,
+							(select rel.l as l, sum(green.r)/count(green.r) as r
+								from RoleEScnn role
+								join GreenSIcn1 green on (role.r = green.l)
+								join {rel} rel on (role.l = rel.l)
+								where rel.r = ?
+								group by rel.l) as green,
+							(select rel.l as l, sum(blue.r)/count(blue.r) as r
+								from RoleEScnn role
+								join BlueSIcn1 blue on (role.r = blue.l)
+								join {rel} rel on (role.l = rel.l)
+								where rel.r = ?
+								group by rel.l) as blue
+							where red.l = green.l and green.l = blue.l""", (e, e, e))
 		serial += cursor2serial("ColorES", c)
 		c.close()		
 
-		c = conn.cursor()
-		c.execute(f"""select rel.r, shape.r from ShapeSScn1 shape
-						join RoleEScnn role on (shape.l = role.r)
-						join {rel} rel on (role.l = rel.r)
-						where rel.l = ?""", (e, ))
-		serial += cursor2serial("ShapeES", c)
-		c.close()		
+#		c = conn.cursor()
+#		c.execute(f"""select rel.l, shape.r from ShapeSScn1 shape
+#						join RoleEScnn role on (shape.l = role.r)
+#						join {rel} rel on (role.l = rel.l)
+#						where rel.r = ?""", (e, ))
+#		serial += cursor2serial("ShapeES", c)
+#		c.close()
 	return serial
 
 ###
@@ -332,6 +379,7 @@ class HttpHandler(http.server.SimpleHTTPRequestHandler):
 			self.send_response(200)
 			self.send_header("Content-Type", "text/plain; charset=UTF-8")
 			self.end_headers()
+			print(entity2serial(parts[2], webconn))
 			self.wfile.write(entity2serial(parts[2], webconn).encode())
 
 		elif parts[1] == "content":
@@ -393,7 +441,9 @@ if newdb:
 	# Core schema
 	execute(binary_rel("RoleES"))
 	execute(binary_rel("ShapeSS"))
-	execute(binary_rel("ColorSS"))
+	execute(binary_rel("RedSI"))
+	execute(binary_rel("GreenSI"))
+	execute(binary_rel("BlueSI"))
 	execute(binary_rel("LeftSS"))
 	execute(binary_rel("RightSS"))
 
