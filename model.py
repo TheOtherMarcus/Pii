@@ -33,7 +33,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "9"
+__version__ = "10"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -55,7 +55,7 @@ statements += pii.model("ConstantE -- ContentEBcn1")
 statements += pii.model("ConstantE -- ShaEScn1")
 
 # Embedded things are located in Containers
-statements += pii.model("ContainerE -- EmbeddedEEc1n -- EmbeddedE")
+statements += pii.model("ContainerE -- EmbeddedEEcnn -- EmbeddedE")
 
 # An Artifact can have Versions
 statements += pii.model("ArtifactE -- VersionEEc1n -- VersionE")

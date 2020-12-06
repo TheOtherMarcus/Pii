@@ -30,7 +30,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "20"
+__version__ = "21"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -127,7 +127,7 @@ def newMutable(label, id):
 def newFile(path, label, id):
 	statements = []
 	basename = os.path.basename(path)
-	(stmts, mutable) = newMutable(label, f"{id} in file {basename}")
+	(stmts, mutable) = newMutable(label, f"{id} [in file] {basename}")
 	statements += stmts
 	statements += pii.relate([mutable, "FileE"])
 	statements += pii.relate([mutable, "PathES", path])
@@ -226,7 +226,7 @@ def trackFile(path, label, id, contenttype, mutable=None):
 		statements += pii.relate([constant, "EntityE"])
 		statements += pii.relate([constant, "LabelES", mtime])
 		basename = os.path.basename(path)
-		statements += pii.relate([constant, "IdentityES", f"{id} in file {basename} at {mtime}"])		
+		statements += pii.relate([constant, "IdentityES", f"{id} [in file] {basename} [at] {mtime}"])		
 		statements += pii.relate([constant, "ConstantE"])
 		statements += pii.relate([constant, "ShaES", sha])
 		statements += pii.relate([constant, "ContentTypeES", contenttype])
@@ -262,7 +262,7 @@ def trackEmbedded(value, label, id, contenttype, mtime, mutable=None):
 		constant = str(uuid.uuid4())
 		statements += pii.relate([constant, "EntityE"])
 		statements += pii.relate([constant, "LabelES", mtime])		
-		statements += pii.relate([constant, "IdentityES", f"{id} at {mtime}"])		
+		statements += pii.relate([constant, "IdentityES", f"{id} [at] {mtime}"])		
 		statements += pii.relate([constant, "ConstantE"])
 		statements += pii.relate([constant, "ShaES", sha])
 		statements += pii.relate([constant, "ContentTypeES", contenttype])
@@ -285,12 +285,12 @@ def trackVersion(path, vnr, label, id, newArtifactFn, contentType):
 
 	mutable = findVersion(artifact, vnr)
 	if not mutable:
-		(stmts, mutable) = newFile(path, f"v{vnr}", f"{label} v{vnr}")
+		(stmts, mutable) = newFile(path, f"v{vnr}", f"{label} [version] {vnr}")
 		statements += stmts
 		statements += pii.relate([mutable, "VersionE"])
 		statements += pii.relate([mutable, "VersionES", vnr])
 		statements += pii.relate([artifact, "VersionEE", mutable])
-	(stmts, mutable, constant) = trackFile(path, f"v{vnr}", f"{label} v{vnr}", contentType, mutable=mutable)
+	(stmts, mutable, constant) = trackFile(path, f"v{vnr}", f"{label} [version] {vnr}", contentType, mutable=mutable)
 	statements += stmts
 
 	return (statements, artifact, mutable, constant)

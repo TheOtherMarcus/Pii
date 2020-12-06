@@ -1,7 +1,7 @@
 
-Product Information Index: Requirements Specification
+Pii: Requirements Specification
 =====================================================
-Version: 2
+Version: 3
 
 R1/v1: Relations
 It shall be possible to define unary and binary relations in Pii.
