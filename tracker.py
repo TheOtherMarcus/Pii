@@ -30,7 +30,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "21"
+__version__ = "22"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -92,6 +92,22 @@ def findVersion(artifact, vnr):
 		version = row[0]
 	c.close()
 	return version
+
+def findSpecificationVersion(id):
+	c = pii.conn.cursor()
+	c.execute("""select spec.l, version.l from SpecificationEcn spec
+					join VersionEEc1n vrel on (spec.l = vrel.l)
+					join VersionEcn version on (version.l = vrel.r)
+					join IdentityEScnn id on (version.l = id.l)
+					where id.r like ?
+					limit 1""", (id + "%", ))
+	version = None
+	spec = None
+	for row in c:
+		spec = row[0]
+		version = row[1]
+	c.close()
+	return (spec, version)
 
 def getContent(constant):
 	content = None
@@ -307,7 +323,7 @@ def trackEmbeddedVersion(value, vnr, req, title, newArtifactFn, contentType, mti
 	if not mutable:
 		(stmts, mutable) = newMutable(f"v{vnr}", f"{req}/v{vnr}: {title}")
 		statements += stmts
-		statements += role(mutable, ["VersionE", "EmbeddedE"])
+		statements += role(mutable, ["VersionE", "EmbeddedE", "SpecificationE"])
 		statements += link(mutable, "VersionES", vnr)
 	statements += link(artifact, "VersionEE", mutable)
 	(stmts, mutable, constant) = trackEmbedded(value, f"v{vnr}", f"{req}/v{vnr}: {title}", contentType, mtime, mutable=mutable)
@@ -350,6 +366,17 @@ def trackPythonFile(path):
 
 		statements += link(artifact, "ModuleEE", module)
 
+	requirements = pythonProperty(path, "__implements__")
+	if requirements:
+		statements += role(artifact, "ImplementationE")
+		statements += role(mutable, "ImplementationE")
+		for req in requirements:
+			(spec_artifact, spec_version) = findSpecificationVersion(req)
+			if spec_artifact:
+				statements += link(spec_artifact, "ImplementationEE", artifact)
+			if spec_version:
+				statements += link(spec_version, "ImplementationEE", mutable)
+
 	return statements
 
 def javascriptProperty(path, property):
@@ -358,7 +385,7 @@ def javascriptProperty(path, property):
 		line = f.readline()
 		while line:
 			if line[0:len(property)] == property:
-				return "".join(line.split(" ")[3:]).strip()
+				return " ".join(line.split(" ")[3:]).strip()
 			line = f.readline()
 	return None
 
@@ -366,6 +393,18 @@ def trackJavascriptFile(path):
 	vnr = javascriptProperty(path, "@version")
 	moduleName = os.path.basename(path)[0:-3] + " / javascript"
 	(statements, artifact, mutable, constant) = trackVersion(path, vnr, moduleName, moduleName, newJavascriptArtifact, "text/plain; charset=UTF-8")
+
+	requirements = javascriptProperty(path, "@implements").split(", ")
+	if requirements:
+		statements += role(artifact, "ImplementationE")
+		statements += role(mutable, "ImplementationE")
+		for req in requirements:
+			(spec_artifact, spec_version) = findSpecificationVersion(req)
+			if spec_artifact:
+				statements += link(spec_artifact, "ImplementationEE", artifact)
+			if spec_version:
+				statements += link(spec_version, "ImplementationEE", mutable)
+
 	return statements
 
 def textProperty(path, property):
@@ -433,6 +472,10 @@ def trackRequirements(container_artifact, container_mutable, container_constant)
 ###
 ### Track Pii project
 
+(stmts, artifact, mutable, constant) = trackSpecification("./requirements.txt")
+pii.execute(stmts)
+pii.execute(trackRequirements(artifact, mutable, constant))
+
 pii.execute(trackPythonFile("./pii.py"))
 pii.execute(trackPythonFile("./model.py"))
 pii.execute(trackPythonFile("./presentation.py"))
@@ -446,7 +489,3 @@ piipy = findArtifact("pii / python")
 piijs = findArtifact("pii / javascript")
 pii.execute(link(piipy, "ModuleEE", piijs))
 pii.execute(link(piijs, "ModuleEE", piipy))
-
-(stmts, artifact, mutable, constant) = trackSpecification("./requirements.txt")
-pii.execute(stmts)
-pii.execute(trackRequirements(artifact, mutable, constant))

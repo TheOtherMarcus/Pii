@@ -40,8 +40,9 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "20"
+__version__ = "21"
 __maintainer__ = "Marcus T. Andersson"
+__implements__ = ["R1/v1", "R2/v1"]
 
 dbfile = 'pii.sqlite3'
 newdb = False

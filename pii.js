@@ -28,7 +28,8 @@
  * @author        Marcus T. Andersson
  * @copyright     Copyright 2020, Marcus T. Andersson
  * @license       MIT
- * @version       15
+ * @version       16
+ * @implements    R3/v1, R4/v1
  */
 
 nodes = [];
@@ -142,6 +143,16 @@ function findEdge(id1, label, id2) {
 	return found;
 }
 
+function deleteEdges(label) {
+	new_edges = [];
+	for (edge of edges) {
+		if (edge.label != label) {
+			new_edges.push(edge);
+		}
+	}
+	return new_edges;
+}
+
 function parse_relations(text) {
 	var lines = text.split("\n");
 	for (line of lines) {
@@ -171,7 +182,6 @@ function parse_relations_and_move(nodeid) {
 		parse_relations(text);
 		window.setTimeout(function() {
 			movement = {position: {x: network.body.nodes[nodeid].x, y: network.body.nodes[nodeid].y}, scale: 1, animation: { duration: 1000, easingFunction: "easeInOutQuad" } }
-			console.log(movement)
 			network.moveTo(movement);
 		}, 200);
 	};
@@ -239,7 +249,7 @@ function newNetwork() {
 	network.on("doubleClick", function (params) {
 		click = 2;
 		if (params.nodes.length > 0) {
-			nodeid = params.nodes[0]
+			nodeid = params.nodes[0];
 			node = findNode(nodeid);
 			rows = node.label.split("\n");
 			if (findRow(rows, "Role").length == 0) {
@@ -250,6 +260,13 @@ function newNetwork() {
 				movement = {position: {x: network.body.nodes[nodeid].x, y: network.body.nodes[nodeid].y}, scale: 1, animation: { duration: 1000, easingFunction: "easeInOutQuad" } }
 				network.moveTo(movement);
 			}
+		}
+		else if (params.edges.length > 0) {
+			console.log(params)
+			console.log(network)
+			label = params.edges[0];
+			edges = deleteEdges(network.body.edges[params.edges[0]].options.label);
+			network.setData({nodes: nodes, edges: edges});
 		}
 	});
 }
