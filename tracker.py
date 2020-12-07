@@ -487,5 +487,7 @@ pii.execute(trackJavascriptFile("./pii.js"))
 
 piipy = findArtifact("pii / python")
 piijs = findArtifact("pii / javascript")
+pii.execute(role(piipy, ["ModuleE", "IntegratedE"]))
+pii.execute(role(piijs, ["ModuleE", "IntegratedE"]))
 pii.execute(link(piipy, "ModuleEE", piijs))
 pii.execute(link(piijs, "ModuleEE", piipy))
