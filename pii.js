@@ -28,7 +28,7 @@
  * @author        Marcus T. Andersson
  * @copyright     Copyright 2020, Marcus T. Andersson
  * @license       MIT
- * @version       16
+ * @version       17
  * @implements    R3/v1, R4/v1
  */
 
@@ -238,7 +238,7 @@ function newNetwork() {
 			}
 		}
 		else if (params.nodes.length > 0) {
-			movement = {position: {x: network.body.nodes[nodeid].x, y: network.body.nodes[nodeid].y}, animation: { duration: 1000, easingFunction: "easeInOutQuad" } }
+			movement = {position: {x: network.body.nodes[nodeid].x, y: network.body.nodes[nodeid].y}, scale: 1, animation: { duration: 1000, easingFunction: "easeInOutQuad" } }
 			window.setTimeout(function() {
 				if (click == 1) {
 					network.moveTo(movement);
@@ -252,14 +252,8 @@ function newNetwork() {
 			nodeid = params.nodes[0];
 			node = findNode(nodeid);
 			rows = node.label.split("\n");
-			if (findRow(rows, "Role").length == 0) {
-				node.label = " \n\n";
-				httpGetAsync("entity/" + nodeid, parse_relations_and_move(nodeid));
-			}
-			else {
-				movement = {position: {x: network.body.nodes[nodeid].x, y: network.body.nodes[nodeid].y}, scale: 1, animation: { duration: 1000, easingFunction: "easeInOutQuad" } }
-				network.moveTo(movement);
-			}
+			node.label = " \n\n";
+			httpGetAsync("entity/" + nodeid, parse_relations_and_move(nodeid));
 		}
 		else if (params.edges.length > 0) {
 			console.log(params)
