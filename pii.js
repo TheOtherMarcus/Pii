@@ -28,7 +28,7 @@
  * @author        Marcus T. Andersson
  * @copyright     Copyright 2020, Marcus T. Andersson
  * @license       MIT
- * @version       18
+ * @version       19
  * @implements    R3/v1, R4/v1
  */
 
@@ -116,7 +116,7 @@ function addNodeText(id, key, text) {
 		}
 	}
 	else if (key == "ColorES") {
-		node.color = {background: text, border: "black"}
+		node.color = {background: text, border: "black", highlight: {background: "pink", border: "black"} }
 	}
 	else {
 		addNodeProp(node, rows, key, text);
@@ -125,7 +125,6 @@ function addNodeText(id, key, text) {
 	for (row of rows) {
 		node.label += row + "\n";
 	}
-	console.log(node.label);
 }
 
 function findEdge(id1, label, id2) {
@@ -248,6 +247,7 @@ function newNetwork() {
 	network = new vis.Network(container, data, options);
 	network.on("click", function (params) {
 		click = 1;
+		document.getElementById("search").value = "";
 		nodeid = params.nodes[0]
 		node = findNode(nodeid);
 		if (params.event.srcEvent.altKey) {
@@ -274,8 +274,6 @@ function newNetwork() {
 			httpGetAsync("entity/" + nodeid, parse_relations_and_move(nodeid));
 		}
 		else if (params.edges.length > 0) {
-			console.log(params)
-			console.log(network)
 			label = params.edges[0];
 			edges = deleteEdges(network.body.edges[params.edges[0]].options.label);
 			network.setData({nodes: nodes, edges: edges});
