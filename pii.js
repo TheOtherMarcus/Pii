@@ -28,7 +28,7 @@
  * @author        Marcus T. Andersson
  * @copyright     Copyright 2020, Marcus T. Andersson
  * @license       MIT
- * @version       17
+ * @version       18
  * @implements    R3/v1, R4/v1
  */
 
@@ -36,6 +36,7 @@ nodes = [];
 edges = [];
 network = null;
 click = 0;
+search_text = "";
 
 function findNode(id) {
 	var found = null;
@@ -157,7 +158,6 @@ function parse_relations(text) {
 	var lines = text.split("\n");
 	for (line of lines) {
 		parts = line.split(" -- ");
-		console.log(parts)
 		if (parts.length == 3) {
 			findNode(parts[0]);
 			if (parts[2].charAt(0) == "\"") {
@@ -196,6 +196,24 @@ function httpGetAsync(theUrl, callback)
     }
     xmlHttp.open("GET", theUrl, true); // true for asynchronous 
     xmlHttp.send(null);
+}
+
+function srch(text)
+{
+	search_text = text;
+	window.setTimeout(function() {
+		if (search_text == text) {
+			matching = [];
+			if (text != "") {
+				for (node of nodes) {
+					if ( (node.label && node.label.indexOf(text) >= 0) || (node.title && node.title.indexOf(text) >= 0) ) {
+						matching.push(node.id);
+					}
+				}
+			}
+			network.selectNodes(matching);
+		}
+	}, 500);
 }
 
 function newNetwork() {

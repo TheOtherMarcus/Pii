@@ -40,7 +40,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "21"
+__version__ = "22"
 __maintainer__ = "Marcus T. Andersson"
 __implements__ = ["R1/v1", "R2/v1"]
 
@@ -362,6 +362,9 @@ memfiles = {"/pii": ("text/html; charset=UTF-8", """
     <script type="text/javascript" src="pii.js"></script>
   <head/>
   <body style="height:100%%;">
+    <form style="position:fixed; z-index: 1; top: 9px; right: 11px;">
+      &#128269; <input id="search" type="text" oninput="javascript:srch(document.getElementById('search').value);"/>
+    </form>
     <div id="mynetwork" style="height:100%%;"></div>
     <script> httpGetAsync('http://localhost:%d/query', parse_relations); </script>
   </body>
