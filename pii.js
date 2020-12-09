@@ -215,6 +215,25 @@ function srch(text)
 	}, 500);
 }
 
+function delete_selected()
+{
+	keepers = []
+	for (node of nodes) {
+		if (node.id in network.body.nodes && !network.body.nodes[node.id].selected) {
+			keepers.push(node);
+		}
+	}
+	nodes = keepers;
+	keepers = []
+	for (edge of edges) {
+		if (edge.id in network.body.edges && !network.body.edges[edge.id].selected) {
+			keepers.push(edge);
+		}
+	}
+	edges = keepers;
+	network.setData({nodes: nodes, edges: edges});
+}
+
 function newNetwork() {
 	var container = document.getElementById("mynetwork");
 	var data = {
