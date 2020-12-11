@@ -40,7 +40,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "22"
+__version__ = "24"
 __maintainer__ = "Marcus T. Andersson"
 __implements__ = ["R1/v1", "R2/v1"]
 
@@ -363,9 +363,9 @@ memfiles = {"/pii": ("text/html; charset=UTF-8", """
   <head/>
   <body style="height:100%%;">
     <form style="position:fixed; z-index: 1; top: 10px; right: 12px;" action="javascript:void(0);">
-      <button id="delete" type="button" style="background-color: pink; border-color: pink;"
+      <button id="delete" type="button" style="background-color: lightsteelblue; border-color: lightsteelblue;"
       	onclick="javascript:delete_selected();" onmouseup="javascript:document.getElementById('delete').blur();"> &#128465; </button>
-      &nbsp; | &nbsp;
+      &nbsp; &#65372; &nbsp;
       &#128269; <input id="search" type="text" oninput="javascript:srch(document.getElementById('search').value);"/>
     </form>
     <div id="mynetwork" style="height:100%%;"></div>

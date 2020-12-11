@@ -30,7 +30,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "22"
+__version__ = "24"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -70,28 +70,8 @@ def findEntity(role, rel, value):
 	c.close()
 	return entity
 
-def findFile(path):
-	return findEntity("FileE", "PathEScn1", path)
-
 def findArtifact(name):
 	return findEntity("ArtifactE", "IdentityEScn1", name)
-
-def findMutable(name):
-	return findEntity("MutableE", "IdentityEScn1", name)
-
-def findVersion(artifact, vnr):
-	c = pii.conn.cursor()
-	c.execute("""select version.l from VersionEcn version
-					join VersionEScn1 vnr on (version.l = vnr.l)
-					join VersionEE vrel on (version.l = vrel.r)
-					where vrel.l = ?
-					and vnr.r = ?
-					limit 1""", (artifact, vnr))
-	version = None
-	for row in c:
-		version = row[0]
-	c.close()
-	return version
 
 def findSpecificationVersion(id):
 	c = pii.conn.cursor()
@@ -131,56 +111,9 @@ def getCreationTime(constant):
 	c.close()
 	return mtime
 
-def newMutable(label, id):
-	statements = []
-	mutable = str(uuid.uuid4())
-	statements += pii.relate([mutable, "EntityE"])
-	statements += pii.relate([mutable, "LabelES", label])
-	statements += pii.relate([mutable, "IdentityES", id])
-	statements += pii.relate([mutable, "MutableE"])
-	return (statements, mutable)	
-
-def newFile(path, label, id):
-	statements = []
-	basename = os.path.basename(path)
-	(stmts, mutable) = newMutable(label, f"{id} [in file] {basename}")
-	statements += stmts
-	statements += pii.relate([mutable, "FileE"])
-	statements += pii.relate([mutable, "PathES", path])
-	return (statements, mutable)	
-
-def newArtifact(label, id):
-	statements = []
-	artifact = str(uuid.uuid4())
-	statements += pii.relate([artifact, "EntityE"])
-	statements += pii.relate([artifact, "LabelES", label])
-	statements += pii.relate([artifact, "IdentityES", id])		
-	statements += pii.relate([artifact, "ArtifactE"])
-	return (statements, artifact)
-
-def newPythonArtifact(label, id):
-	(statements, artifact) = newArtifact(label, id)
-	statements += pii.relate([artifact, "IntegratedE"])
-	statements += pii.relate([artifact, "ModuleE"])
-	return (statements, artifact)
-
-def newJavascriptArtifact(label, id):
-	(statements, artifact) = newArtifact(label, id)
-	return (statements, artifact)
-
-def newSpecificationArtifact(label, id):
-	(statements, artifact) = newArtifact(label, id)
-	statements += pii.relate([artifact, "SpecificationE"])
-	return (statements, artifact)
-
-def newRequirementArtifact(label, id):
-	(statements, artifact) = newSpecificationArtifact(label, id)
-	statements += pii.relate([artifact, "RequirementE"])
-	return (statements, artifact)
-
-def role(entity, roles):
+def addRoles(entity, roles):
 	if not entity:
-		raise PiiException("role(): entity is null")
+		raise PiiException("addRoles(): entity is null")
 	statements = []
 	if isinstance(roles, str):
 		roles = [roles]
@@ -216,12 +149,16 @@ def link(l, rel, r, card="cnn"):
 	return statements
 
 def trackFile(path, label, id, contenttype, mutable=None):
-	statements = []
+	basename = os.path.basename(path)
 	if not mutable:
-		mutable = findFile(path)
-	if not mutable:
-		(stmts, mutable) = newFile(path, label, id)
-		statements += stmts
+		(statements, mutable) = findOrCreate(
+			["EntityE", "MutableE", "FileE"], [],
+			[("LabelES", label), ("IdentityES", f"{id} [in file] {basename}"), ("PathES", path)], [],
+			[], [])
+	else:
+		statements = addRoles(mutable, "FileE")
+		statements += link(mutable, "PathES", path)
+		statements += link(mutable, "IdentityES", f"{id} [in file] {basename}")
 
 	sha = sha256sum(path)
 
@@ -256,10 +193,12 @@ def trackFile(path, label, id, contenttype, mutable=None):
 def trackEmbedded(value, label, id, contenttype, mtime, mutable=None):
 	statements = []
 	if not mutable:
-		mutable = findMutable(id)
-	if not mutable:
-		(stmts, mutable) = newMutable(label, id)
-		statements += stmts
+		(statements, mutable) = findOrCreate(
+			["EntityE", "MutableE"], [],
+			[("LabelES", label), ("IdentityES", id)], [],
+			[], [])
+	else:
+		statements = []
 
 	sha = sha256sum(value, value=True)
 
@@ -290,45 +229,74 @@ def trackEmbedded(value, label, id, contenttype, mtime, mutable=None):
 
 	return (statements, mutable, constant)
 
+def findOrCreate(roles, extra_roles, lvalues, extra_lvalues, rvalues, extra_rvalues):
+	statements = []
+	data = []
+	conditions = []
+	query = f"select role.l from {roles[0]}cn role "
+	for (i, role) in enumerate(roles[1:]):
+		query += f"join {role}cn role{i} on (role{i}.l = role.l) "
+	for (i, (rel, value)) in enumerate(lvalues):
+		query += f"join {rel}cn1 lvalue{i} on (lvalue{i}.l = role.l) "
+		conditions += [f"lvalue{i}.r = ? "]
+		data += [value]
+	for (i, (rel, value)) in enumerate(rvalues):
+		query += f"join {rel}c1n rvalue{i} on (rvalue{i}.r = role.l) "
+		conditions += [f"rvalue{i}.l = ? "]
+		data += [value]
+	for (i, condition) in enumerate(conditions):
+		query += "where " if i == 0 else "and "
+		query += condition
+	query += "limit 1"
+	c = pii.conn.cursor()
+	c.execute(query, data)
+	found = None
+	for row in c:
+		found = row[0]
+	c.close()
+	if not found:
+		found = str(uuid.uuid4())
+		for role in roles:
+			statements += pii.relate([found, role])
+		for (rel, value) in lvalues:
+			statements += pii.relate([found, rel, value])
+		for (rel, value) in rvalues:
+			statements += pii.relate([value, rel, found])
+	statements += addRoles(found, extra_roles)
+	for (rel, value) in extra_lvalues:
+		statements += link(found, rel, value)
+	for (rel, value) in extra_rvalues:
+		statements += link(value, rel, found)
+	return (statements, found)
+
 # trackVersion() differs from trackFile() as it creates a new
 # entity for each new version of the file it finds.
-def trackVersion(path, vnr, label, id, newArtifactFn, contentType):
-	statements = []
-	artifact = findArtifact(id)
-	if not artifact:
-		(stmts, artifact) = newArtifactFn(label, id)
-		statements += stmts
-
-	mutable = findVersion(artifact, vnr)
-	if not mutable:
-		(stmts, mutable) = newFile(path, f"v{vnr}", f"{label} [version] {vnr}")
-		statements += stmts
-		statements += pii.relate([mutable, "VersionE"])
-		statements += pii.relate([mutable, "VersionES", vnr])
-		statements += pii.relate([artifact, "VersionEE", mutable])
+def trackVersion(path, vnr, label, id, roles, extra_roles, contentType):
+	(statements, artifact) = findOrCreate(
+		["EntityE", "ArtifactE"] + roles, extra_roles,
+		[("LabelES", label), ("IdentityES", id)], [],
+		[], [])
+	(stmts, mutable) = findOrCreate(
+		["EntityE", "MutableE", "VersionE"], [],
+		[("LabelES", f"v{vnr}"), ("IdentityES", f"{id} [version] {vnr}"), ("VersionES", vnr)], [],
+		[("VersionEE", artifact)], [])
+	statements += stmts
 	(stmts, mutable, constant) = trackFile(path, f"v{vnr}", f"{label} [version] {vnr}", contentType, mutable=mutable)
 	statements += stmts
-
 	return (statements, artifact, mutable, constant)
 
-def trackEmbeddedVersion(value, vnr, req, title, newArtifactFn, contentType, mtime):
-	statements = []
-	artifact = findArtifact(f"{req}: {title}")
-	if not artifact:
-		(stmts, artifact) = newArtifactFn(f"{req}", f"{req}: {title}")
-		statements += pii.relate([artifact, "EmbeddedE"])
-		statements += stmts
-
-	mutable = findVersion(artifact, vnr)
-	if not mutable:
-		(stmts, mutable) = newMutable(f"v{vnr}", f"{req}/v{vnr}: {title}")
-		statements += stmts
-		statements += role(mutable, ["VersionE", "EmbeddedE", "SpecificationE"])
-		statements += link(mutable, "VersionES", vnr)
-	statements += link(artifact, "VersionEE", mutable)
+def trackEmbeddedRequirement(value, vnr, req, title, contentType, mtime):
+	(statements, artifact) = findOrCreate(
+		["EntityE", "ArtifactE", "SpecificationE", "EmbeddedE"], [],
+		[("LabelES", f"{req}"), ("IdentityES", f"{req}: {title}")], [],
+		[], [])
+	(stmts, mutable) = findOrCreate(
+		["EntityE", "MutableE", "VersionE", "EmbeddedE", "SpecificationE"], [],
+		[("LabelES", f"v{vnr}"), ("IdentityES", f"{req}/v{vnr}: {title}"), ("VersionES", vnr)], [],
+		[("VersionEE", artifact)], [])
+	statements += stmts
 	(stmts, mutable, constant) = trackEmbedded(value, f"v{vnr}", f"{req}/v{vnr}: {title}", contentType, mtime, mutable=mutable)
 	statements += stmts
-
 	return (statements, artifact, mutable, constant)
 
 def pythonProperty(path, property):
@@ -354,22 +322,21 @@ def pythonImports(path):
 def trackPythonFile(path):
 	vnr = pythonProperty(path, "__version__")
 	moduleName = os.path.basename(path)[0:-3] + " / python"
-	(statements, artifact, mutable, constant) = trackVersion(path, vnr, moduleName, moduleName, newPythonArtifact, "text/plain; charset=UTF-8")
+	(statements, artifact, mutable, constant) = trackVersion(path, vnr, moduleName, moduleName, ["ModuleE", "IntegratedE"], [], "text/plain; charset=UTF-8")
 
 	imports = pythonImports(path)
 	for imp in imports:
 		imp = imp + " / python"
-		module = findArtifact(imp)
-		if not module:
-			(stmts, module) = newPythonArtifact(imp, imp)
-			statements += stmts
-
-		statements += link(artifact, "ModuleEE", module)
+		(stmts, module) = findOrCreate(
+			["EntityE", "ModuleE", "IntegratedE", "ArtifactE"], [],
+			[("LabelES", imp), ("IdentityES", imp)], [],
+			[], [("ModuleEE", artifact)])
+		statements += stmts
 
 	requirements = pythonProperty(path, "__implements__")
 	if requirements:
-		statements += role(artifact, "ImplementationE")
-		statements += role(mutable, "ImplementationE")
+		statements += addRoles(artifact, "ImplementationE")
+		statements += addRoles(mutable, "ImplementationE")
 		for req in requirements:
 			(spec_artifact, spec_version) = findSpecificationVersion(req)
 			if spec_artifact:
@@ -392,12 +359,12 @@ def javascriptProperty(path, property):
 def trackJavascriptFile(path):
 	vnr = javascriptProperty(path, "@version")
 	moduleName = os.path.basename(path)[0:-3] + " / javascript"
-	(statements, artifact, mutable, constant) = trackVersion(path, vnr, moduleName, moduleName, newJavascriptArtifact, "text/plain; charset=UTF-8")
+	(statements, artifact, mutable, constant) = trackVersion(path, vnr, moduleName, moduleName, [], [], "text/plain; charset=UTF-8")
 
 	requirements = javascriptProperty(path, "@implements").split(", ")
 	if requirements:
-		statements += role(artifact, "ImplementationE")
-		statements += role(mutable, "ImplementationE")
+		statements += addRoles(artifact, "ImplementationE")
+		statements += addRoles(mutable, "ImplementationE")
 		for req in requirements:
 			(spec_artifact, spec_version) = findSpecificationVersion(req)
 			if spec_artifact:
@@ -430,7 +397,7 @@ def textTitle(path):
 def trackSpecification(path):
 	vnr = textProperty(path, "Version")
 	title = textTitle(path)
-	return trackVersion(path, vnr, title, title, newSpecificationArtifact, "text/plain; charset=UTF-8")
+	return trackVersion(path, vnr, title, title, ["SpecificationE"], [], "text/plain; charset=UTF-8")
 
 def parseRequirement(line):
 	vstart = line.find("/v")
@@ -441,7 +408,7 @@ def parseRequirement(line):
 
 def trackRequirement(container_artifact, container_mutable, container_constant, req, vnr, title, body):
 	mtime = getCreationTime(container_constant)
-	(statements, artifact, mutable, constant) = trackEmbeddedVersion(body, vnr, req, title, newSpecificationArtifact, "text/plain; charset=UTF-8", mtime)
+	(statements, artifact, mutable, constant) = trackEmbeddedRequirement(body, vnr, req, title, "text/plain; charset=UTF-8", mtime)
 	statements += link(container_artifact, "EmbeddedEE", artifact)
 	statements += link(container_mutable, "EmbeddedEE", mutable)
 	statements += link(container_constant, "EmbeddedEE", constant)
@@ -449,9 +416,9 @@ def trackRequirement(container_artifact, container_mutable, container_constant, 
 
 def trackRequirements(container_artifact, container_mutable, container_constant):
 	statements = []
-	statements += role(container_artifact, "ContainerE")
-	statements += role(container_mutable, "ContainerE")
-	statements += role(container_constant, "ContainerE")
+	statements += addRoles(container_artifact, "ContainerE")
+	statements += addRoles(container_mutable, "ContainerE")
+	statements += addRoles(container_constant, "ContainerE")
 	content = getContent(container_constant).decode("utf-8")
 	req = None
 	body = ""
@@ -487,7 +454,7 @@ pii.execute(trackJavascriptFile("./pii.js"))
 
 piipy = findArtifact("pii / python")
 piijs = findArtifact("pii / javascript")
-pii.execute(role(piipy, ["ModuleE", "IntegratedE"]))
-pii.execute(role(piijs, ["ModuleE", "IntegratedE"]))
+pii.execute(addRoles(piipy, ["ModuleE", "IntegratedE"]))
+pii.execute(addRoles(piijs, ["ModuleE", "IntegratedE"]))
 pii.execute(link(piipy, "ModuleEE", piijs))
 pii.execute(link(piijs, "ModuleEE", piipy))
