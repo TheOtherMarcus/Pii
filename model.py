@@ -33,7 +33,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "10"
+__version__ = "11"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -122,5 +122,11 @@ statements += pii.model("TestResultE -- TestEEcn1 -- TestE")
 
 # A Guide tells you how to use an Appliance 
 statements += pii.model("ApplianceE -- GuideEEcnn -- GuideE")
+
+# A version in Git have additional properties.
+statements += pii.model("GitVersionE -- CommitEScn1")
+statements += pii.model("GitVersionE -- AuthorEScn1")
+statements += pii.model("GitVersionE -- DateETcn1")
+statements += pii.model("GitVersionE -- CommentEBcn1")
 
 pii.execute(statements)

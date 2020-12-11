@@ -40,7 +40,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "24"
+__version__ = "25"
 __maintainer__ = "Marcus T. Andersson"
 __implements__ = ["R1/v1", "R2/v1"]
 
@@ -154,7 +154,7 @@ def value2serial(t, v, rel, l):
 	if t == "B":
 		serial += jenc.encode("/content/" + l + "/" + rel)
 	if t == "T":
-		serial += v
+		serial += jenc.encode(v)
 	return serial
 
 def cursor2serial(rel, c):
@@ -190,7 +190,7 @@ def entity2serial(e, conn):
 	c.close()
 
 	c = conn.cursor()
-	c.execute("""select coalesce(red.l, green.l, blue.l, "0"), printf("#%02x%02x%02x", ifnull(red.r, 255), ifnull(green.r, 255), ifnull(blue.r, 255))
+	c.execute("""select coalesce(red.l, green.l, blue.l, "0"), printf("rgb(%d,%d,%d)", ifnull(red.r, 255), ifnull(green.r, 255), ifnull(blue.r, 255))
 					from
 						(select role.l as l, sum(red.r)/count(red.r) as r
 							from RoleEScnn role
@@ -250,7 +250,7 @@ def entity2serial(e, conn):
 			c.close()
 
 			c = conn.cursor()
-			c.execute(f"""select coalesce(red.l, green.l, blue.l, "0"), printf("#%02x%02x%02x", ifnull(red.r, 255), ifnull(green.r, 255), ifnull(blue.r, 255))
+			c.execute(f"""select coalesce(red.l, green.l, blue.l, "0"), printf("rgb(%d,%d,%d)", ifnull(red.r, 255), ifnull(green.r, 255), ifnull(blue.r, 255))
 							from
 								(select rel.r as l, sum(red.r)/count(red.r) as r
 									from RoleEScnn role
@@ -317,7 +317,7 @@ def entity2serial(e, conn):
 		c.close()
 
 		c = conn.cursor()
-		c.execute(f"""select coalesce(red.l, green.l, blue.l, "0"), printf("#%02x%02x%02x", ifnull(red.r, 255), ifnull(green.r, 255), ifnull(blue.r, 255))
+		c.execute(f"""select coalesce(red.l, green.l, blue.l, "0"), printf("rgb(%d,%d,%d)", ifnull(red.r, 255), ifnull(green.r, 255), ifnull(blue.r, 255))
 						from
 							(select rel.l as l, sum(red.r)/count(red.r) as r
 								from RoleEScnn role

@@ -30,7 +30,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "25"
+__version__ = "26"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -140,6 +140,24 @@ def link(l, rel, r, card="cnn"):
 					where rel.l = ?
 					and rel.r = ?
 					limit 1""", (l, r))
+	lnk = None
+	for row in c:
+		lnk = row[0]
+	c.close()
+	if not lnk:
+		statements += pii.relate([l, rel, r])
+	return statements
+
+def weakLLink(l, rel, r, card="cnn"):
+	if not l:
+		raise PiiException("weakLLink(): l is null")
+	if not r:
+		raise PiiException("weakLLink(): r is null")
+	statements = []
+	c = pii.conn.cursor()
+	c.execute(f"""select rel.l, rel.r from {rel}{card} rel 
+					where rel.l = ?
+					limit 1""", (l, ))
 	lnk = None
 	for row in c:
 		lnk = row[0]
@@ -278,7 +296,7 @@ def trackVersion(path, vnr, label, id, roles, extra_roles, contentType):
 		[], [])
 	(stmts, mutable) = findOrCreate(
 		["EntityE", "MutableE", "VersionE"], [],
-		[("LabelES", f"v{vnr}"), ("IdentityES", f"{id} [version] {vnr}"), ("VersionES", vnr)], [],
+		[("VersionES", vnr)], [],
 		[("VersionEE", artifact)], [])
 	statements += stmts
 	(stmts, mutable, constant) = trackFile(path, f"v{vnr}", f"{label} [version] {vnr}", contentType, mutable=mutable)
@@ -292,12 +310,50 @@ def trackEmbeddedRequirement(value, vnr, req, title, contentType, mtime):
 		[], [])
 	(stmts, mutable) = findOrCreate(
 		["EntityE", "MutableE", "VersionE", "EmbeddedE", "SpecificationE"], [],
-		[("LabelES", f"v{vnr}"), ("IdentityES", f"{req}/v{vnr}: {title}"), ("VersionES", vnr)], [],
+		[("VersionES", vnr)], [],
 		[("VersionEE", artifact)], [])
 	statements += stmts
 	(stmts, mutable, constant) = trackEmbedded(value, f"v{vnr}", f"{req}/v{vnr}: {title}", contentType, mtime, mutable=mutable)
 	statements += stmts
 	return (statements, artifact, mutable, constant)
+
+def trackGitVersions(path, label):
+	statements = []
+	artifact = findArtifact(label)
+	stream = os.popen(f"git log --date=iso-strict {path}")
+	log = stream.read().split("\n")
+	vnr = 0
+	lvalues = []
+	parsingComment = False
+	for line in log:
+		if parsingComment:
+			comment += line[4:] + "\n"
+		if line[0:len("commit ")] == "commit ":
+			vnr += 1
+			lvalues = [("CommitES", line.split(" ")[1])]
+		elif line[0:len("Author: ")] == "Author: ":
+			lvalues += [("AuthorES", " ".join(line.split(" ")[1:]).strip())]
+		elif line[0:len("Date: ")] == "Date: ":
+			lvalues += [("DateET", " ".join(line.split(" ")[1:]).strip())]
+		elif line == "":
+			if parsingComment:
+				parsingComment = False
+				lvalues += [("CommentEB", comment.encode())]
+				(stmts, version) = findOrCreate(
+					["EntityE", "VersionE"],
+					["GitVersionE"],
+					[("VersionES", vnr)],
+					lvalues,
+					[("VersionEE", artifact)],
+					[])
+				statements += stmts
+				statements += weakLLink(version, "LabelES", f"v{vnr}")
+				statements += weakLLink(version, "IdentityES", f"{label} [git version] {vnr}")
+				statements += weakLLink(version, "ContentTypeES", f"text/plain; charset=UTF-8")
+			else:
+				comment = ""
+				parsingComment = True
+	return statements
 
 def pythonProperty(path, property):
 	with open(path) as f:
@@ -451,6 +507,15 @@ pii.execute(trackPythonFile("./q_files.py"))
 pii.execute(trackPythonFile("./q_spec.py"))
 pii.execute(trackPythonFile("./setversions.py"))
 pii.execute(trackJavascriptFile("./pii.js"))
+
+pii.execute(trackGitVersions("./pii.py", "pii/python"))
+pii.execute(trackGitVersions("./model.py", "model/python"))
+pii.execute(trackGitVersions("./presentation.py", "presentation/python"))
+pii.execute(trackGitVersions("./tracker.py", "tracker/python"))
+pii.execute(trackGitVersions("./q_files.py", "q_files/python"))
+pii.execute(trackGitVersions("./q_spec.py", "q_spec/python"))
+pii.execute(trackGitVersions("./setversions.py", "setversions/python"))
+pii.execute(trackGitVersions("./pii.js", "pii/javascript"))
 
 piipy = findArtifact("pii/python")
 piijs = findArtifact("pii/javascript")
