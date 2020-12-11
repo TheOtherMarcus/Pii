@@ -28,7 +28,7 @@
  * @author        Marcus T. Andersson
  * @copyright     Copyright 2020, Marcus T. Andersson
  * @license       MIT
- * @version       19
+ * @version       21
  * @implements    R3/v1, R4/v1
  */
 
@@ -101,6 +101,10 @@ function addNodeText(id, key, text) {
 	if (key == "LabelES") {
 		if (node.shape == "dot") {
 			rows[0] = "<b>" + text + "</b>";
+		}
+		else {
+			findRow(rows, "Label");
+			replaceRow(rows, "Label", text);
 		}
 	}
 	else if (key == "IdentityES") {
@@ -241,14 +245,6 @@ function newNetwork() {
 		edges: edges,
 	};
 	var options = {
-		/*layout: {
-	        hierarchical: {
-	          direction: "UD",
-	          shakeTowards: "leaves",
-	          sortMethod: "hubsize"
-	        },
-	      },*/
-		//physics: { hierarchicalRepulsion: { avoidOverlap: 1 }, },
 		physics: {
             forceAtlas2Based: {
               gravitationalConstant: -26,
@@ -289,8 +285,16 @@ function newNetwork() {
 			nodeid = params.nodes[0];
 			node = findNode(nodeid);
 			rows = node.label.split("\n");
-			node.label = " \n\n";
-			httpGetAsync("entity/" + nodeid, parse_relations_and_move(nodeid));
+			if (findRow(rows, "Role") == "") {
+				node.label = " \n\n";
+				httpGetAsync("entity/" + nodeid, parse_relations_and_move(nodeid));
+			}
+			else {
+				node.shape = "dot";
+				node.title = rows[0].slice(3,-4);
+				node.label = "<b>" + findRow(rows, "Label") + "</b>";
+				network.setData({nodes: nodes, edges: edges});
+			}
 		}
 		else if (params.edges.length > 0) {
 			label = params.edges[0];

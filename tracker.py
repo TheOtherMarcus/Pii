@@ -30,7 +30,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "24"
+__version__ = "25"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -321,12 +321,12 @@ def pythonImports(path):
 
 def trackPythonFile(path):
 	vnr = pythonProperty(path, "__version__")
-	moduleName = os.path.basename(path)[0:-3] + " / python"
+	moduleName = os.path.basename(path)[0:-3] + "/python"
 	(statements, artifact, mutable, constant) = trackVersion(path, vnr, moduleName, moduleName, ["ModuleE", "IntegratedE"], [], "text/plain; charset=UTF-8")
 
 	imports = pythonImports(path)
 	for imp in imports:
-		imp = imp + " / python"
+		imp = imp + "/python"
 		(stmts, module) = findOrCreate(
 			["EntityE", "ModuleE", "IntegratedE", "ArtifactE"], [],
 			[("LabelES", imp), ("IdentityES", imp)], [],
@@ -358,7 +358,7 @@ def javascriptProperty(path, property):
 
 def trackJavascriptFile(path):
 	vnr = javascriptProperty(path, "@version")
-	moduleName = os.path.basename(path)[0:-3] + " / javascript"
+	moduleName = os.path.basename(path)[0:-3] + "/javascript"
 	(statements, artifact, mutable, constant) = trackVersion(path, vnr, moduleName, moduleName, [], [], "text/plain; charset=UTF-8")
 
 	requirements = javascriptProperty(path, "@implements").split(", ")
@@ -452,8 +452,8 @@ pii.execute(trackPythonFile("./q_spec.py"))
 pii.execute(trackPythonFile("./setversions.py"))
 pii.execute(trackJavascriptFile("./pii.js"))
 
-piipy = findArtifact("pii / python")
-piijs = findArtifact("pii / javascript")
+piipy = findArtifact("pii/python")
+piijs = findArtifact("pii/javascript")
 pii.execute(addRoles(piipy, ["ModuleE", "IntegratedE"]))
 pii.execute(addRoles(piijs, ["ModuleE", "IntegratedE"]))
 pii.execute(link(piipy, "ModuleEE", piijs))
