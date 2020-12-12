@@ -30,7 +30,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "27"
+__version__ = "28"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -506,6 +506,7 @@ pii.execute(trackPythonFile("./presentation.py"))
 pii.execute(trackPythonFile("./tracker.py"))
 pii.execute(trackPythonFile("./q_files.py"))
 pii.execute(trackPythonFile("./q_spec.py"))
+#pii.execute(trackPythonFile("./q_no_implementation.py"))
 pii.execute(trackPythonFile("./setversions.py"))
 pii.execute(trackJavascriptFile("./pii.js"))
 
@@ -515,6 +516,7 @@ pii.execute(trackGitVersions("./presentation.py", "presentation/python"))
 pii.execute(trackGitVersions("./tracker.py", "tracker/python"))
 pii.execute(trackGitVersions("./q_files.py", "q_files/python"))
 pii.execute(trackGitVersions("./q_spec.py", "q_spec/python"))
+#pii.execute(trackGitVersions("./q_no_implementation.py", "q_no_implementation/python"))
 pii.execute(trackGitVersions("./setversions.py", "setversions/python"))
 pii.execute(trackGitVersions("./pii.js", "pii/javascript"))
 
