@@ -30,7 +30,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "26"
+__version__ = "27"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -216,7 +216,8 @@ def trackEmbedded(value, label, id, contenttype, mtime, mutable=None):
 			[("LabelES", label), ("IdentityES", id)], [],
 			[], [])
 	else:
-		statements = []
+		statements = weakLLink(mutable, "LabelES", label)
+		statements += weakLLink(mutable, "IdentityES", id)
 
 	sha = sha256sum(value, value=True)
 
