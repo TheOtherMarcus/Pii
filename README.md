@@ -2,7 +2,7 @@
 
 Read the introduction at https://formallanguage.blogspot.com/2020/11/product-information-index-pii.html
 
-The unique feature of this Product Data Management (PDM) system is that it automatically collects product information from primary sources and makes it searchable and browseable. This makes Pii easy to integrate with your existing tools and processes. Other PDM systems typically acts as the master record keeper and manual data entry is the norm. It is common that such systems get out of sync with reality.
+Pii is a PDM (Product Data Management) system. The killer feature of Pii is its method to automatically collect product information from primary sources (documents, files, databases, source control) and make it searchable/browseable. This makes Pii easy to integrate with your existing tools and processes. Search reports are presented as an interactive graph that can be further explored. Other PDM systems typically acts as the master record keeper and manual data entry is the norm. It is common that such systems get out of sync with reality.
 
 Even though the focus of this repo is product data modeling, the core pii.py/pii.js implementation does not depend on any particular data model. You can choose to model any type of data by changing model.py, presentation.py and tracker.py.
 
