@@ -30,7 +30,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "29"
+__version__ = "30"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -333,8 +333,6 @@ def trackGitVersions(path, label):
 		if line[0:len("commit ")] == "commit ":
 			vnr += 1
 			lvalues = [("CommitES", line.split(" ")[1])]
-		elif line[0:len("Author: ")] == "Author: ":
-			lvalues += [("AuthorES", " ".join(line.split(" ")[1:]).strip())]
 		elif line[0:len("Date: ")] == "Date: ":
 			lvalues += [("DateET", " ".join(line.split(" ")[1:]).strip())]
 		elif line == "":
