@@ -6,7 +6,7 @@ Pii is a PDM (Product Data Management) system. The killer feature of Pii is its 
 
 Even though the focus of this repo is product data modeling, the core pii.py/pii.js implementation does not depend on any particular data model. You can choose to model any type of data by changing model.py, presentation.py and tracker.py.
 
-To integrate Pii with your product development you need to change tracker.py. The example implementation of tracker.py extracts information about the Pii product itself found in the files in this repo. The queries q_files.py, q_spec.py and q_no_implementation.py are starting points for the graphical browser.
+To integrate Pii with your product development you need to change tracker.py. The example implementation of tracker.py found here extracts information about the Pii product itself found in the files in this repo. The queries q_files.py, q_spec.py and q_no_implementation.py are starting points for the graphical browser.
 
 For a quick start, run the following commands.
 
