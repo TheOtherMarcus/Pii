@@ -30,7 +30,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "28"
+__version__ = "29"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -175,8 +175,9 @@ def trackFile(path, label, id, contenttype, mutable=None):
 			[], [])
 	else:
 		statements = addRoles(mutable, "FileE")
-		statements += link(mutable, "PathES", path)
-		statements += link(mutable, "IdentityES", f"{id} [in file] {basename}")
+		statements += weakLLink(mutable, "PathES", path)
+		statements += weakLLink(mutable, "LabelES", label)
+		statements += weakLLink(mutable, "IdentityES", f"{id} [in file] {basename}")
 
 	sha = sha256sum(path)
 

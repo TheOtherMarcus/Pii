@@ -28,12 +28,14 @@
  * @author        Marcus T. Andersson
  * @copyright     Copyright 2020, Marcus T. Andersson
  * @license       MIT
- * @version       21
+ * @version       22
  * @implements    R3/v1, R4/v1
  */
 
 nodes = [];
 edges = [];
+visnodes = new vis.DataSet();
+visedges = new vis.DataSet();
 network = null;
 click = 0;
 search_text = "";
@@ -49,6 +51,7 @@ function findNode(id) {
 	if (found == null) {
 		found = {id: id, font: { multi: "html", size: 12 }, label: " \n\n", shape: "dot" };
 		nodes.push(found)
+		visnodes.update(found);
 	}
 	return found;
 }
@@ -129,6 +132,7 @@ function addNodeText(id, key, text) {
 	for (row of rows) {
 		node.label += row + "\n";
 	}
+	visnodes.update(node);
 }
 
 function findEdge(id1, label, id2) {
@@ -143,6 +147,7 @@ function findEdge(id1, label, id2) {
 	if (found == null) {
 		found = {from: id1, to: id2, arrows: "to", label: label, font: { size: 12, align: "horizontal" } };
 		edges.push(found);
+		visedges.update(found);
 	}
 	return found;
 }
@@ -153,11 +158,17 @@ function deleteEdges(label) {
 		if (edge.label != label) {
 			new_edges.push(edge);
 		}
+		else {
+			visedges.remove(edge);
+		}
 	}
 	return new_edges;
 }
 
 function parse_relations(text) {
+	if (!network) {
+		newNetwork();
+	}
 	var lines = text.split("\n");
 	for (line of lines) {
 		parts = line.split(" -- ");
@@ -171,12 +182,6 @@ function parse_relations(text) {
 				findEdge(parts[0], parts[1], parts[2]);
 			}
 		}
-	}
-	if (!network) {
-		newNetwork();
-	}
-	else {
-		network.setData({nodes: nodes, edges: edges});
 	}
 }
 
@@ -226,6 +231,9 @@ function delete_selected()
 		if (node.id in network.body.nodes && !network.body.nodes[node.id].selected) {
 			keepers.push(node);
 		}
+		else {
+			visnodes.remove(node);
+		}
 	}
 	nodes = keepers;
 	keepers = []
@@ -233,16 +241,18 @@ function delete_selected()
 		if (edge.id in network.body.edges && !network.body.edges[edge.id].selected) {
 			keepers.push(edge);
 		}
+		else {
+			visedges.remove(edge);
+		}
 	}
 	edges = keepers;
-	network.setData({nodes: nodes, edges: edges});
 }
 
 function newNetwork() {
 	var container = document.getElementById("mynetwork");
 	var data = {
-		nodes: nodes,
-		edges: edges,
+		nodes: visnodes,
+		edges: visedges,
 	};
 	var options = {
 		physics: {
@@ -263,20 +273,22 @@ function newNetwork() {
 	network.on("click", function (params) {
 		click = 1;
 		document.getElementById("search").value = "";
-		nodeid = params.nodes[0]
-		node = findNode(nodeid);
-		if (params.event.srcEvent.altKey) {
-			if (node.link && node.link.length > 0) {
-				window.open(node.link);
-			}
-		}
-		else if (params.nodes.length > 0) {
-			movement = {position: {x: network.body.nodes[nodeid].x, y: network.body.nodes[nodeid].y}, scale: 1, animation: { duration: 1000, easingFunction: "easeInOutQuad" } }
-			window.setTimeout(function() {
-				if (click == 1) {
-					network.moveTo(movement);
+		if (params.nodes.length > 0) {
+			nodeid = params.nodes[0]
+			node = findNode(nodeid);
+			if (params.event.srcEvent.altKey) {
+				if (node.link && node.link.length > 0) {
+					window.open(node.link);
 				}
-			}, 200);
+			}
+			else if (params.nodes.length > 0) {
+				movement = {position: {x: network.body.nodes[nodeid].x, y: network.body.nodes[nodeid].y}, scale: 1, animation: { duration: 1000, easingFunction: "easeInOutQuad" } }
+				window.setTimeout(function() {
+					if (click == 1) {
+						network.moveTo(movement);
+					}
+				}, 200);
+			}
 		}
 	});
 	network.on("doubleClick", function (params) {
@@ -293,13 +305,12 @@ function newNetwork() {
 				node.shape = "dot";
 				node.title = rows[0].slice(3,-4);
 				node.label = "<b>" + findRow(rows, "Label") + "</b>";
-				network.setData({nodes: nodes, edges: edges});
+				visnodes.update(node);
 			}
 		}
 		else if (params.edges.length > 0) {
 			label = params.edges[0];
 			edges = deleteEdges(network.body.edges[params.edges[0]].options.label);
-			network.setData({nodes: nodes, edges: edges});
 		}
 	});
 }
