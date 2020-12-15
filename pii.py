@@ -35,12 +35,13 @@ import random
 import threading
 import http.server
 import socketserver
+import socket
 
 __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "25"
+__version__ = "26"
 __maintainer__ = "Marcus T. Andersson"
 __implements__ = ["R1/v1", "R2/v1"]
 
@@ -439,6 +440,7 @@ def serve(serial):
 
 	input()
 	print("webserver: stopping")
+	webbrowser.open(url) # Break the wait for connection in the web server
 	httpd.shutdown()
 
 ###
