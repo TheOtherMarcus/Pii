@@ -110,7 +110,7 @@ statements += pii.model("RecipeE -- ProduceEEc1n -- ProduceE")
 statements += pii.model("ProduceE -- UnitEScn1")
 statements += pii.model("ProduceE -- AmountERcn1")
 
-# A batch of Substance is both a Recipe and a Substance
+# A batch of Produce is both a Recipe and a Produce
 
 # A Specification is realized in an Implementation and verified with a Test
 statements += pii.model("SpecificationE -- ImplementationEEcnn -- ImplementationE")
@@ -125,7 +125,6 @@ statements += pii.model("ApplianceE -- GuideEEcnn -- GuideE")
 
 # A version in Git have additional properties.
 statements += pii.model("GitVersionE -- CommitEScn1")
-statements += pii.model("GitVersionE -- AuthorEScn1")
 statements += pii.model("GitVersionE -- DateETcn1")
 statements += pii.model("GitVersionE -- CommentEBcn1")
 
