@@ -17,4 +17,4 @@ $ python tracker.py
 $ python q_files.py
 ```
 
-In the graph that opens in your browser, double click on a node to expand or contract it. Double click on an edge to remove all edges with the same name. ALT-Click will open content in nodes with dashed border. Delete all selected nodes and edges with the trash can.
+In the graph that opens in your browser, double click on a node to expand or contract it. Double click on an edge to remove all edges with that name. ALT-Click will open content in nodes with dashed border. Remove all selected nodes and edges with the trash can.
