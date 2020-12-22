@@ -28,7 +28,7 @@
  * @author        Marcus T. Andersson
  * @copyright     Copyright 2020, Marcus T. Andersson
  * @license       MIT
- * @version       22
+ * @version       23
  * @implements    R3/v1, R4/v1
  */
 
@@ -174,7 +174,7 @@ function parse_relations(text) {
 		parts = line.split(" -- ");
 		if (parts.length == 3) {
 			findNode(parts[0]);
-			if (parts[2].charAt(0) == "\"") {
+			if (parts[2].charAt(0) == "\"" || Number(parts[2]) ) {
 				addNodeText(parts[0], parts[1], eval(parts[2]));
 			}
 			else {

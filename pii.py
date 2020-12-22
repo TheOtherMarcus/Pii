@@ -35,21 +35,17 @@ import random
 import threading
 import http.server
 import socketserver
-import socket
 
 __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "26"
+__version__ = "27"
 __maintainer__ = "Marcus T. Andersson"
 __implements__ = ["R1/v1", "R2/v1"]
 
 dbfile = 'pii.sqlite3'
 newdb = False
-
-if not os.path.isfile(dbfile):
-	newdb = True
 
 # Open database in autocommit mode by setting isolation_level to None.
 conn = sqlite3.connect('pii.sqlite3', isolation_level=None)
@@ -57,6 +53,14 @@ webconn = None # Opens in webserver thread
 
 # Set journal mode to WAL.
 conn.execute('pragma journal_mode=wal')
+
+# Fetch existing tables
+c = conn.cursor()
+c.execute("SELECT name FROM sqlite_master WHERE type='table'")
+tables = []
+for row in c:
+	tables += [row[0]]
+c.close()
 
 # JSON Encoder
 jenc = json.JSONEncoder()
@@ -68,22 +72,33 @@ dbtype = {"S": "TEXT", "T": "TEXT", "B": "BLOB", "I": "INTEGER", "R": "REAL", "E
 ### Basic database schema creation
 
 def unary_rel(name):
+	global tables
 	left_type = dbtype[name[-1:]]
 	statements = []
-	statements += [(f"CREATE TABLE IF NOT EXISTS {name} (l {left_type}, t TEXT, a TEXT)", ())]
-	statements += [(f"CREATE VIEW IF NOT EXISTS {name}cn AS select l, t from (select l, t, a from (select l, t, a from {name} order by t desc) group by l) where a='T'", ())]
+	if name not in tables:
+		statements += [(f"CREATE TABLE IF NOT EXISTS {name} (l {left_type}, t TEXT, a TEXT)", ())]
+		statements += [(f"CREATE INDEX IF NOT EXISTS {name}_l ON {name} (l)", ())]
+		statements += [(f"CREATE VIEW IF NOT EXISTS {name}cn AS select l, t from (select l, t, a from (select l, t, a from {name} order by t desc) group by l) where a='T'", ())]
+		tables += [name]
 	return statements
 
 def binary_rel(name):
+	global tables
 	left_type = dbtype[name[-2:-1]]
 	right_type = dbtype[name[-1:]]
 	statements = []
-	statements += [(f"CREATE TABLE IF NOT EXISTS {name} (l {left_type}, r {right_type}, t TEXT, a TEXT)", ())]
-	statements += [(f"CREATE VIEW IF NOT EXISTS {name}cnn AS select l, r, t from (select l, r, t, a from (select l, r, t, a from {name} order by t desc) group by l, r) where a='T'", ())]
-	statements += [(f"CREATE VIEW IF NOT EXISTS {name}cn1 AS select l, r, t from (select l, r, t from {name}cnn order by t desc) group by l", ())]
-	statements += [(f"CREATE VIEW IF NOT EXISTS {name}c1n AS select l, r, t from (select l, r, t from {name}cnn order by t desc) group by r", ())]
-	statements += [(f"CREATE VIEW IF NOT EXISTS {name}c11x AS select l, r, t from {name}c1n INTERSECT select l, r, t from {name}cn1", ())]
-	statements += [(f"CREATE VIEW IF NOT EXISTS {name}c11 AS select l, r, t from {name}c11x UNION select l, r, t from (select l, r, t from {name}cn1 where r not in (select r from {name}c11x) order by t) group by r UNION select l, r, t from (select l, r, t from {name}c1n where l not in (select l from {name}c11x) order by t) group by l", ())]
+	if name not in tables:
+		statements += [(f"CREATE TABLE IF NOT EXISTS {name} (l {left_type}, r {right_type}, t TEXT, a TEXT)", ())]
+		statements += [(f"CREATE INDEX IF NOT EXISTS {name}_l ON {name} (l)", ())]
+		statements += [(f"CREATE INDEX IF NOT EXISTS {name}_r ON {name} (r)", ())]
+		#statements += [(f"CREATE INDEX IF NOT EXISTS {name}_t ON {name} (t)", ())]
+		#statements += [(f"CREATE INDEX IF NOT EXISTS {name}_a ON {name} (a)", ())]
+		statements += [(f"CREATE VIEW IF NOT EXISTS {name}cnn AS select l, r, t from (select l, r, t, a from (select l, r, t, a from {name} order by t desc) group by l, r) where a='T'", ())]
+		statements += [(f"CREATE VIEW IF NOT EXISTS {name}cn1 AS select l, r, t from (select l, r, t from {name}cnn order by t desc) group by l", ())]
+		statements += [(f"CREATE VIEW IF NOT EXISTS {name}c1n AS select l, r, t from (select l, r, t from {name}cnn order by t desc) group by r", ())]
+		statements += [(f"CREATE VIEW IF NOT EXISTS {name}c11x AS select l, r, t from {name}c1n INTERSECT select l, r, t from {name}cn1", ())]
+		statements += [(f"CREATE VIEW IF NOT EXISTS {name}c11 AS select l, r, t from {name}c11x UNION select l, r, t from (select l, r, t from {name}cn1 where r not in (select r from {name}c11x) order by t) group by r UNION select l, r, t from (select l, r, t from {name}c1n where l not in (select l from {name}c11x) order by t) group by l", ())]
+		tables += [name]
 	return statements
 
 ###
@@ -446,15 +461,14 @@ def serve(serial):
 ###
 ### Pii initialization
 
-if newdb:
-	# Core schema
-	execute(binary_rel("RoleES"))
-	execute(binary_rel("ShapeSS"))
-	execute(binary_rel("RedSI"))
-	execute(binary_rel("GreenSI"))
-	execute(binary_rel("BlueSI"))
-	execute(binary_rel("LeftSS"))
-	execute(binary_rel("RightSS"))
+# Core schema
+execute(binary_rel("RoleES"))
+execute(binary_rel("ShapeSS"))
+execute(binary_rel("RedSI"))
+execute(binary_rel("GreenSI"))
+execute(binary_rel("BlueSI"))
+execute(binary_rel("LeftSS"))
+execute(binary_rel("RightSS"))
 
 if __name__ == '__main__':
 	conn.close()
