@@ -1,7 +1,9 @@
 """
 Product Information Index - Presentation
 
-This file specifies how entity roles should be displayed.
+This file specifies how entity roles should be displayed. When an entity
+have more than one role, the red, green and blue components for each role
+are mixed together.
 
 MIT License
 
