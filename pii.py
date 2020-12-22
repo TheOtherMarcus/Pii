@@ -40,7 +40,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "27"
+__version__ = "28"
 __maintainer__ = "Marcus T. Andersson"
 __implements__ = ["R1/v1", "R2/v1"]
 
@@ -76,9 +76,10 @@ def unary_rel(name):
 	left_type = dbtype[name[-1:]]
 	statements = []
 	if name not in tables:
-		statements += [(f"CREATE TABLE IF NOT EXISTS {name} (l {left_type}, t TEXT, a TEXT)", ())]
-		statements += [(f"CREATE INDEX IF NOT EXISTS {name}_l ON {name} (l)", ())]
-		statements += [(f"CREATE VIEW IF NOT EXISTS {name}cn AS select l, t from (select l, t, a from (select l, t, a from {name} order by t desc) group by l) where a='T'", ())]
+		statements += [(f"CREATE TABLE IF NOT EXISTS {name} (t INTEGER PRIMARY KEY, l {left_type}, a INTEGER)", ())]
+		#statements += [(f"CREATE INDEX IF NOT EXISTS {name}_l ON {name} (l)", ())]
+		#statements += [(f"CREATE INDEX IF NOT EXISTS {name}_a ON {name} (a)", ())]
+		statements += [(f"CREATE VIEW IF NOT EXISTS {name}cn AS select l, t from (select l, t, a from (select l, t, a from {name} order by t desc) group by l) where a=1", ())]
 		tables += [name]
 	return statements
 
@@ -88,12 +89,11 @@ def binary_rel(name):
 	right_type = dbtype[name[-1:]]
 	statements = []
 	if name not in tables:
-		statements += [(f"CREATE TABLE IF NOT EXISTS {name} (l {left_type}, r {right_type}, t TEXT, a TEXT)", ())]
-		statements += [(f"CREATE INDEX IF NOT EXISTS {name}_l ON {name} (l)", ())]
-		statements += [(f"CREATE INDEX IF NOT EXISTS {name}_r ON {name} (r)", ())]
-		#statements += [(f"CREATE INDEX IF NOT EXISTS {name}_t ON {name} (t)", ())]
+		statements += [(f"CREATE TABLE IF NOT EXISTS {name} (t INTEGER PRIMARY KEY, l {left_type}, r {right_type}, a INTEGER)", ())]
+		#statements += [(f"CREATE INDEX IF NOT EXISTS {name}_l ON {name} (l)", ())]
+		#statements += [(f"CREATE INDEX IF NOT EXISTS {name}_r ON {name} (r)", ())]
 		#statements += [(f"CREATE INDEX IF NOT EXISTS {name}_a ON {name} (a)", ())]
-		statements += [(f"CREATE VIEW IF NOT EXISTS {name}cnn AS select l, r, t from (select l, r, t, a from (select l, r, t, a from {name} order by t desc) group by l, r) where a='T'", ())]
+		statements += [(f"CREATE VIEW IF NOT EXISTS {name}cnn AS select l, r, t from (select l, r, t, a from (select l, r, t, a from {name} order by t desc) group by l, r) where a=1", ())]
 		statements += [(f"CREATE VIEW IF NOT EXISTS {name}cn1 AS select l, r, t from (select l, r, t from {name}cnn order by t desc) group by l", ())]
 		statements += [(f"CREATE VIEW IF NOT EXISTS {name}c1n AS select l, r, t from (select l, r, t from {name}cnn order by t desc) group by r", ())]
 		statements += [(f"CREATE VIEW IF NOT EXISTS {name}c11x AS select l, r, t from {name}c1n INTERSECT select l, r, t from {name}cn1", ())]
@@ -106,16 +106,15 @@ def binary_rel(name):
 
 def model(relation, associate=True):
 	statements = []
-	a = "T" if associate else "F"
-	now = datetime.datetime.now().isoformat()
+	a = 1 if associate else 0
 	schema = relation.split(" -- ")
 	if len(schema) == 2 or len(schema) == 3:
 		statements += unary_rel(schema[0])
 		statements += binary_rel(schema[1][:-3])
-		statements += [(f"INSERT INTO LeftSS (l, r, t, a) values (?, ?, ?, ?)", (schema[0], schema[1], now, a))]
+		statements += [(f"INSERT INTO LeftSS (l, r, a) values (?, ?, ?)", (schema[0], schema[1], a))]
 		if len(schema) == 3:
 			statements += unary_rel(schema[2])
-			statements += [(f"INSERT INTO RightSS (l, r, t, a) values (?, ?, ?, ?)", (schema[1], schema[2], now, a))]
+			statements += [(f"INSERT INTO RightSS (l, r, a) values (?, ?, ?)", (schema[1], schema[2], a))]
 	elif len(schema) < 2:
 		raise PiiError(f"Too few arcs ( -- ): {relation}")
 	elif len(schema) > 3:
@@ -127,18 +126,17 @@ def model(relation, associate=True):
 
 def relate(tuple_triplet, associate=True):
 	statements = []
-	a = "T" if associate else "F"
-	now = datetime.datetime.now().isoformat()
+	a = 1 if associate else 0
 	if len(tuple_triplet) == 2:
 		l = tuple_triplet[0]
 		rel = tuple_triplet[1]
-		statements += [(f"INSERT INTO {rel} (l, t, a) values (?, ?, ?)", (l, now, a))]
-		statements += [(f"INSERT INTO RoleES (l, r, t, a) values (?, ?, ?, ?)", (l, rel, now, a))]
+		statements += [(f"INSERT INTO {rel} (l, a) values (?, ?)", (l, a))]
+		statements += [(f"INSERT INTO RoleES (l, r, a) values (?, ?, ?)", (l, rel, a))]
 	elif len(tuple_triplet) == 3:
 		l = tuple_triplet[0]
 		rel = tuple_triplet[1]
 		r = tuple_triplet[2]
-		statements += [(f"INSERT INTO {rel} (l, r, t, a) values (?, ?, ?, ?)", (l, r, now, a))]
+		statements += [(f"INSERT INTO {rel} (l, r, a) values (?, ?, ?)", (l, r, a))]
 	else:
 		raise PiiError("Too few/many items: {tuple_triplet}")
 	return statements
