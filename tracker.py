@@ -30,7 +30,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "30"
+__version__ = "31"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -501,7 +501,6 @@ pii.execute(trackRequirements(artifact, mutable, constant))
 
 pii.execute(trackPythonFile("./pii.py"))
 pii.execute(trackPythonFile("./model.py"))
-pii.execute(trackPythonFile("./presentation.py"))
 pii.execute(trackPythonFile("./tracker.py"))
 pii.execute(trackPythonFile("./q_files.py"))
 pii.execute(trackPythonFile("./q_spec.py"))
