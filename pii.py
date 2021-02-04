@@ -40,15 +40,15 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "28"
+__version__ = "29"
 __maintainer__ = "Marcus T. Andersson"
 __implements__ = ["R1/v1", "R2/v1"]
 
-dbfile = 'pii.sqlite3'
+dbfile = 'data.sqlite3'
 newdb = False
 
 # Open database in autocommit mode by setting isolation_level to None.
-conn = sqlite3.connect('pii.sqlite3', isolation_level=None)
+conn = sqlite3.connect(dbfile, isolation_level=None)
 webconn = None # Opens in webserver thread
 
 # Set journal mode to WAL.
@@ -393,7 +393,7 @@ class HttpHandler(http.server.SimpleHTTPRequestHandler):
 		global memfiles, webconn
 
 		if not webconn:
-			webconn = sqlite3.connect('pii.sqlite3', isolation_level=None)
+			webconn = sqlite3.connect(dbfile, isolation_level=None)
 
 		parts = self.path.split("/")
 		if parts[1] == "entity":
