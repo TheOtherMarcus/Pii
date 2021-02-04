@@ -1,7 +1,7 @@
 
 Pii: Requirements Specification
 =====================================================
-Version: 4
+Version: 5
 
 R1/v1: Relations
 It shall be possible to define unary and binary relations in Pii.
@@ -19,3 +19,6 @@ belong to the role will be displayed with that shape.
 
 R5/v1: Traceability
 It shall be possible to find requirements that haven't been implemented yet.
+
+R6/v1: Time delta
+It shall be possible to find changes between two points in time.

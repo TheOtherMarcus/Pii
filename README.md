@@ -11,9 +11,8 @@ To integrate Pii with your product development you need to change tracker.py. Th
 For a quick start, run the following commands.
 
 ```bash
-$ python model.py
-$ python presentation.py
-$ python tracker.py
+$ python pii_model.py
+$ python pii_tracker.py
 $ python q_files.py
 ```
 

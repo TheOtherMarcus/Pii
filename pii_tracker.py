@@ -30,7 +30,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "31"
+__version__ = "1"
 __maintainer__ = "Marcus T. Andersson"
 
 import pii
@@ -500,21 +500,20 @@ pii.execute(stmts)
 pii.execute(trackRequirements(artifact, mutable, constant))
 
 pii.execute(trackPythonFile("./pii.py"))
-pii.execute(trackPythonFile("./model.py"))
-pii.execute(trackPythonFile("./tracker.py"))
+pii.execute(trackPythonFile("./pii_model.py"))
+pii.execute(trackPythonFile("./pii_tracker.py"))
 pii.execute(trackPythonFile("./q_files.py"))
 pii.execute(trackPythonFile("./q_spec.py"))
-#pii.execute(trackPythonFile("./q_no_implementation.py"))
+pii.execute(trackPythonFile("./q_no_implementation.py"))
 pii.execute(trackPythonFile("./setversions.py"))
 pii.execute(trackJavascriptFile("./pii.js"))
 
 pii.execute(trackGitVersions("./pii.py", "pii/python"))
-pii.execute(trackGitVersions("./model.py", "model/python"))
-pii.execute(trackGitVersions("./presentation.py", "presentation/python"))
-pii.execute(trackGitVersions("./tracker.py", "tracker/python"))
+pii.execute(trackGitVersions("./pii_model.py", "pii_model/python"))
+pii.execute(trackGitVersions("./pii_tracker.py", "pii_tracker/python"))
 pii.execute(trackGitVersions("./q_files.py", "q_files/python"))
 pii.execute(trackGitVersions("./q_spec.py", "q_spec/python"))
-#pii.execute(trackGitVersions("./q_no_implementation.py", "q_no_implementation/python"))
+pii.execute(trackGitVersions("./q_no_implementation.py", "q_no_implementation/python"))
 pii.execute(trackGitVersions("./setversions.py", "setversions/python"))
 pii.execute(trackGitVersions("./pii.js", "pii/javascript"))
 
