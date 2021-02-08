@@ -30,10 +30,10 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "1"
+__version__ = "2"
 __maintainer__ = "Marcus T. Andersson"
 
-import pii
+import core
 import hashlib
 import datetime
 import os
@@ -60,7 +60,7 @@ def sha256sum(filename, value=False):
 
 def findEntity(role, rel, value):
 	entity = None
-	c = pii.conn.cursor()
+	c = core.conn.cursor()
 	c.execute(f"""select role.l from {role}cn role
 					join {rel} rel on (role.l = rel.l)
 					where rel.r = ?
@@ -74,7 +74,7 @@ def findArtifact(name):
 	return findEntity("ArtifactE", "IdentityEScn1", name)
 
 def findSpecificationVersion(id):
-	c = pii.conn.cursor()
+	c = core.conn.cursor()
 	c.execute("""select spec.l, version.l from SpecificationEcn spec
 					join VersionEEc1n vrel on (spec.l = vrel.l)
 					join VersionEcn version on (version.l = vrel.r)
@@ -91,7 +91,7 @@ def findSpecificationVersion(id):
 
 def getContent(constant):
 	content = None
-	c = pii.conn.cursor()
+	c = core.conn.cursor()
 	c.execute(f"""select content.r from ContentEBcn1 content
 					where content.l = ?
 					limit 1""", (constant, ))
@@ -102,7 +102,7 @@ def getContent(constant):
 
 def getCreationTime(constant):
 	mtime = None
-	c = pii.conn.cursor()
+	c = core.conn.cursor()
 	c.execute(f"""select content.r from CreationTimeEScn1 content
 					where content.l = ?
 					limit 1""", (constant, ))
@@ -117,7 +117,7 @@ def addRoles(entity, roles):
 	statements = []
 	if isinstance(roles, str):
 		roles = [roles]
-	c = pii.conn.cursor()
+	c = core.conn.cursor()
 	c.execute("""select role.r from RoleEScnn role 
 					where role.l = ?""", (entity, ))
 	existing = []
@@ -126,7 +126,7 @@ def addRoles(entity, roles):
 	c.close()
 	for role in roles:
 		if not role in existing:
-			statements += pii.relate([entity, role])
+			statements += core.relate([entity, role])
 	return statements
 
 def link(l, rel, r, card="cnn"):
@@ -135,7 +135,7 @@ def link(l, rel, r, card="cnn"):
 	if not r:
 		raise PiiException("link(): r is null")
 	statements = []
-	c = pii.conn.cursor()
+	c = core.conn.cursor()
 	c.execute(f"""select rel.l, rel.r from {rel}{card} rel 
 					where rel.l = ?
 					and rel.r = ?
@@ -145,7 +145,7 @@ def link(l, rel, r, card="cnn"):
 		lnk = row[0]
 	c.close()
 	if not lnk:
-		statements += pii.relate([l, rel, r])
+		statements += core.relate([l, rel, r])
 	return statements
 
 def weakLLink(l, rel, r, card="cnn"):
@@ -154,7 +154,7 @@ def weakLLink(l, rel, r, card="cnn"):
 	if not r:
 		raise PiiException("weakLLink(): r is null")
 	statements = []
-	c = pii.conn.cursor()
+	c = core.conn.cursor()
 	c.execute(f"""select rel.l, rel.r from {rel}{card} rel 
 					where rel.l = ?
 					limit 1""", (l, ))
@@ -163,7 +163,7 @@ def weakLLink(l, rel, r, card="cnn"):
 		lnk = row[0]
 	c.close()
 	if not lnk:
-		statements += pii.relate([l, rel, r])
+		statements += core.relate([l, rel, r])
 	return statements
 
 def trackFile(path, label, id, contenttype, mutable=None):
@@ -181,7 +181,7 @@ def trackFile(path, label, id, contenttype, mutable=None):
 
 	sha = sha256sum(path)
 
-	c = pii.conn.cursor()
+	c = core.conn.cursor()
 	c.execute("""select constant.l from ConstantEcn constant
 					left join ShaEScn1 sha on (constant.l = sha.l)
 					left join ContentTypeEScn1 contenttype on (constant.l = contenttype.l)
@@ -195,15 +195,15 @@ def trackFile(path, label, id, contenttype, mutable=None):
 	if not constant:
 		mtime = datetime.datetime.fromtimestamp(os.path.getmtime(path)).isoformat()
 		constant = str(uuid.uuid4())
-		statements += pii.relate([constant, "EntityE"])
-		statements += pii.relate([constant, "LabelES", mtime])
+		statements += core.relate([constant, "EntityE"])
+		statements += core.relate([constant, "LabelES", mtime])
 		basename = os.path.basename(path)
-		statements += pii.relate([constant, "IdentityES", f"{id} [in file] {basename} [at] {mtime}"])		
-		statements += pii.relate([constant, "ConstantE"])
-		statements += pii.relate([constant, "ShaES", sha])
-		statements += pii.relate([constant, "ContentTypeES", contenttype])
-		statements += pii.relate([constant, "CreationTimeES", mtime])
-		statements += pii.relate([constant, "ContentEB", sqlite3.Binary(open(path, "rb").read())])
+		statements += core.relate([constant, "IdentityES", f"{id} [in file] {basename} [at] {mtime}"])		
+		statements += core.relate([constant, "ConstantE"])
+		statements += core.relate([constant, "ShaES", sha])
+		statements += core.relate([constant, "ContentTypeES", contenttype])
+		statements += core.relate([constant, "CreationTimeES", mtime])
+		statements += core.relate([constant, "ContentEB", sqlite3.Binary(open(path, "rb").read())])
 
 	statements += link(mutable, "ContentEE", constant)
 
@@ -222,7 +222,7 @@ def trackEmbedded(value, label, id, contenttype, mtime, mutable=None):
 
 	sha = sha256sum(value, value=True)
 
-	c = pii.conn.cursor()
+	c = core.conn.cursor()
 	c.execute("""select constant.l from ConstantEcn constant
 					left join ShaEScn1 sha on (constant.l = sha.l)
 					left join ContentTypeEScn1 contenttype on (constant.l = contenttype.l)
@@ -235,15 +235,15 @@ def trackEmbedded(value, label, id, contenttype, mtime, mutable=None):
 	c.close()
 	if not constant:
 		constant = str(uuid.uuid4())
-		statements += pii.relate([constant, "EntityE"])
-		statements += pii.relate([constant, "LabelES", mtime])		
-		statements += pii.relate([constant, "IdentityES", f"{id} [at] {mtime}"])		
-		statements += pii.relate([constant, "ConstantE"])
-		statements += pii.relate([constant, "ShaES", sha])
-		statements += pii.relate([constant, "ContentTypeES", contenttype])
-		statements += pii.relate([constant, "CreationTimeES", mtime])
-		statements += pii.relate([constant, "ContentEB", sqlite3.Binary(value.encode())])
-		statements += pii.relate([constant, "EmbeddedE"])
+		statements += core.relate([constant, "EntityE"])
+		statements += core.relate([constant, "LabelES", mtime])		
+		statements += core.relate([constant, "IdentityES", f"{id} [at] {mtime}"])		
+		statements += core.relate([constant, "ConstantE"])
+		statements += core.relate([constant, "ShaES", sha])
+		statements += core.relate([constant, "ContentTypeES", contenttype])
+		statements += core.relate([constant, "CreationTimeES", mtime])
+		statements += core.relate([constant, "ContentEB", sqlite3.Binary(value.encode())])
+		statements += core.relate([constant, "EmbeddedE"])
 
 	statements += link(mutable, "ContentEE", constant)
 
@@ -268,7 +268,7 @@ def findOrCreate(roles, extra_roles, lvalues, extra_lvalues, rvalues, extra_rval
 		query += "where " if i == 0 else "and "
 		query += condition
 	query += "limit 1"
-	c = pii.conn.cursor()
+	c = core.conn.cursor()
 	c.execute(query, data)
 	found = None
 	for row in c:
@@ -277,11 +277,11 @@ def findOrCreate(roles, extra_roles, lvalues, extra_lvalues, rvalues, extra_rval
 	if not found:
 		found = str(uuid.uuid4())
 		for role in roles:
-			statements += pii.relate([found, role])
+			statements += core.relate([found, role])
 		for (rel, value) in lvalues:
-			statements += pii.relate([found, rel, value])
+			statements += core.relate([found, rel, value])
 		for (rel, value) in rvalues:
-			statements += pii.relate([value, rel, found])
+			statements += core.relate([value, rel, found])
 	statements += addRoles(found, extra_roles)
 	for (rel, value) in extra_lvalues:
 		statements += link(found, rel, value)
@@ -496,30 +496,30 @@ def trackRequirements(container_artifact, container_mutable, container_constant)
 ### Track Pii project
 
 (stmts, artifact, mutable, constant) = trackSpecification("./requirements.txt")
-pii.execute(stmts)
-pii.execute(trackRequirements(artifact, mutable, constant))
+core.execute(stmts)
+core.execute(trackRequirements(artifact, mutable, constant))
 
-pii.execute(trackPythonFile("./pii.py"))
-pii.execute(trackPythonFile("./pii_model.py"))
-pii.execute(trackPythonFile("./pii_tracker.py"))
-pii.execute(trackPythonFile("./q_files.py"))
-pii.execute(trackPythonFile("./q_spec.py"))
-pii.execute(trackPythonFile("./q_no_implementation.py"))
-pii.execute(trackPythonFile("./setversions.py"))
-pii.execute(trackJavascriptFile("./pii.js"))
+core.execute(trackPythonFile("./core.py"))
+core.execute(trackPythonFile("./pii_model.py"))
+core.execute(trackPythonFile("./pii_tracker.py"))
+core.execute(trackPythonFile("./q_files.py"))
+core.execute(trackPythonFile("./q_spec.py"))
+core.execute(trackPythonFile("./q_no_implementation.py"))
+core.execute(trackPythonFile("./setversions.py"))
+core.execute(trackJavascriptFile("./core.js"))
 
-pii.execute(trackGitVersions("./pii.py", "pii/python"))
-pii.execute(trackGitVersions("./pii_model.py", "pii_model/python"))
-pii.execute(trackGitVersions("./pii_tracker.py", "pii_tracker/python"))
-pii.execute(trackGitVersions("./q_files.py", "q_files/python"))
-pii.execute(trackGitVersions("./q_spec.py", "q_spec/python"))
-pii.execute(trackGitVersions("./q_no_implementation.py", "q_no_implementation/python"))
-pii.execute(trackGitVersions("./setversions.py", "setversions/python"))
-pii.execute(trackGitVersions("./pii.js", "pii/javascript"))
+core.execute(trackGitVersions("./core.py", "core/python"))
+core.execute(trackGitVersions("./pii_model.py", "pii_model/python"))
+core.execute(trackGitVersions("./pii_tracker.py", "pii_tracker/python"))
+core.execute(trackGitVersions("./q_files.py", "q_files/python"))
+core.execute(trackGitVersions("./q_spec.py", "q_spec/python"))
+core.execute(trackGitVersions("./q_no_implementation.py", "q_no_implementation/python"))
+core.execute(trackGitVersions("./setversions.py", "setversions/python"))
+core.execute(trackGitVersions("./core.js", "core/javascript"))
 
-piipy = findArtifact("pii/python")
-piijs = findArtifact("pii/javascript")
-pii.execute(addRoles(piipy, ["ModuleE", "IntegratedE"]))
-pii.execute(addRoles(piijs, ["ModuleE", "IntegratedE"]))
-pii.execute(link(piipy, "ModuleEE", piijs))
-pii.execute(link(piijs, "ModuleEE", piipy))
+piipy = findArtifact("core/python")
+piijs = findArtifact("core/javascript")
+core.execute(addRoles(piipy, ["ModuleE", "IntegratedE"]))
+core.execute(addRoles(piijs, ["ModuleE", "IntegratedE"]))
+core.execute(link(piipy, "ModuleEE", piijs))
+core.execute(link(piijs, "ModuleEE", piipy))

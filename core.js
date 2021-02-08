@@ -1,7 +1,7 @@
 /**
- * Product Information Index - Vis Web Client
+ * Graph Applications - Vis Web Client
  *
- * This file implements the Vis graph visualization of Pii data.
+ * This file implements the Vis graph visualization of graph application's data.
  *
  * MIT License
  *
@@ -28,7 +28,7 @@
  * @author        Marcus T. Andersson
  * @copyright     Copyright 2020, Marcus T. Andersson
  * @license       MIT
- * @version       23
+ * @version       1
  * @implements    R3/v1, R4/v1
  */
 

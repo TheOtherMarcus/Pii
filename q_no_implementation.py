@@ -31,20 +31,20 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "1"
+__version__ = "2"
 __maintainer__ = "Marcus T. Andersson"
 __implements__ = ["R5/v1"]
 
-import pii
+import core
 
 serial = ""
 
-c = pii.conn.cursor()
+c = core.conn.cursor()
 c.execute("""select spec.l from SpecificationEcn spec
 				left join ImplementationEEcnn impl on (impl.l = spec.l)
 				where impl.r is null""")
 for row in c:
-	serial += pii.entity2serial(row[0], pii.conn)
+	serial += core.entity2serial(row[0], core.conn)
 c.close()
 
-pii.serve(serial)
+core.serve(serial)

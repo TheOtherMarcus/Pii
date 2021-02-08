@@ -30,18 +30,18 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "8"
+__version__ = "9"
 __maintainer__ = "Marcus T. Andersson"
 
-import pii
+import core
 
 serial = ""
 
-c = pii.conn.cursor()
+c = core.conn.cursor()
 c.execute("""select role.l from RoleEScnn role
 				where role.r = 'FileE'""")
 for row in c:
-	serial += pii.entity2serial(row[0], pii.conn)
+	serial += core.entity2serial(row[0], core.conn)
 c.close()
 
-pii.serve(serial)
+core.serve(serial)

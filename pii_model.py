@@ -33,119 +33,119 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "13"
+__version__ = "2"
 __maintainer__ = "Marcus T. Andersson"
 
-import pii
+import core
 
 statements = []
 
 # Entities have Identity
-statements += pii.model("EntityE -- LabelEScn1")
-statements += pii.model("EntityE -- IdentityEScn1")
+statements += core.model("EntityE -- LabelEScn1")
+statements += core.model("EntityE -- IdentityEScn1")
 
 # Files have Path
-statements += pii.model("FileE -- PathEScn1")
+statements += core.model("FileE -- PathEScn1")
 
 # Mutables can change content but Constants remain the same
-statements += pii.model("MutableE -- ContentEEcnn -- ConstantE")
-statements += pii.model("ConstantE -- ContentTypeEScn1")
-statements += pii.model("ConstantE -- CreationTimeEScn1")
-statements += pii.model("ConstantE -- ContentEBcn1")
-statements += pii.model("ConstantE -- ShaEScn1")
+statements += core.model("MutableE -- ContentEEcnn -- ConstantE")
+statements += core.model("ConstantE -- ContentTypeEScn1")
+statements += core.model("ConstantE -- CreationTimeEScn1")
+statements += core.model("ConstantE -- ContentEBcn1")
+statements += core.model("ConstantE -- ShaEScn1")
 
 # Embedded things are located in Containers
-statements += pii.model("ContainerE -- EmbeddedEEcnn -- EmbeddedE")
+statements += core.model("ContainerE -- EmbeddedEEcnn -- EmbeddedE")
 
 # An Artifact can have Versions
-statements += pii.model("ArtifactE -- VersionEEc1n -- VersionE")
-statements += pii.model("VersionE -- VersionEScn1")
+statements += core.model("ArtifactE -- VersionEEc1n -- VersionE")
+statements += core.model("VersionE -- VersionEScn1")
 
 # A branch is both an Artifact and a Version
 
 # Integrated things depend on external Modules to work correctly
-statements += pii.model("IntegratedE -- ModuleEEcnn -- ModuleE")
+statements += core.model("IntegratedE -- ModuleEEcnn -- ModuleE")
 
 # Copies have an Original
-statements += pii.model("OriginalE -- CopyEEc1n -- CopyE")
+statements += core.model("OriginalE -- CopyEEc1n -- CopyE")
 
 # Composed things are built from parts and materials
-statements += pii.model("ComposedE -- BoMPartEEc1n -- BoMPartE")
-statements += pii.model("ComposedE -- BoMMaterialEEc1n -- BoMMaterialE")
+statements += core.model("ComposedE -- BoMPartEEc1n -- BoMPartE")
+statements += core.model("ComposedE -- BoMMaterialEEc1n -- BoMMaterialE")
 
 # A BoM entry for a specific Part and how many of it
-statements += pii.model("BoMPartE -- CountEIcn1")
-statements += pii.model("BoMPartE -- PartEEcn1 -- PartE")
+statements += core.model("BoMPartE -- CountEIcn1")
+statements += core.model("BoMPartE -- PartEEcn1 -- PartE")
 
 # A BoM entry for a specific Material and how much of it
-statements += pii.model("BoMMaterialE -- AmountERcn1")
-statements += pii.model("BoMMaterialE -- UnitEScn1")
-statements += pii.model("BoMMaterialE -- MaterialEEcn1 -- MaterialE")
+statements += core.model("BoMMaterialE -- AmountERcn1")
+statements += core.model("BoMMaterialE -- UnitEScn1")
+statements += core.model("BoMMaterialE -- MaterialEEcn1 -- MaterialE")
 
 # Aggregates are built from Components (when you don't care about how many or how much)
-statements += pii.model("AggregateE -- ComponentEEcnn -- ComponentE")
+statements += core.model("AggregateE -- ComponentEEcnn -- ComponentE")
 
 # A Manufactured thing is built with the help of Tools
-statements += pii.model("ManufacturedE -- ToolEEcnn -- ToolE")
+statements += core.model("ManufacturedE -- ToolEEcnn -- ToolE")
 
 # A Work is created by following an Instruction
-statements += pii.model("WorkE -- InstructionEEcnn -- InstructionE")
+statements += core.model("WorkE -- InstructionEEcnn -- InstructionE")
 
 # An Electrical thing has a Schema
-statements += pii.model("ElectricalE -- SchemaEEcnn -- SchemaE")
+statements += core.model("ElectricalE -- SchemaEEcnn -- SchemaE")
 
 # A Mechanical thing has a Drawing
-statements += pii.model("MechanicalE -- DrawingEEcnn -- DrawingE")
+statements += core.model("MechanicalE -- DrawingEEcnn -- DrawingE")
 
 # Compiled things (e.g. software) has Source Code
-statements += pii.model("CompiledE -- SourceCodeEEcnn -- SourceCodeE")
+statements += core.model("CompiledE -- SourceCodeEEcnn -- SourceCodeE")
 
 # A physical Item (e.g. my Toyota) is built using a Blueprint (e.g. Toyota Avensis 2006) 
-statements += pii.model("BlueprintE -- ItemEEc1n -- ItemE")
+statements += core.model("BlueprintE -- ItemEEc1n -- ItemE")
 
 # A batch of Items is both a Blueprint and an Item
 
 # A Produce (uncountable products) is produced using a Recipe
-statements += pii.model("RecipeE -- ProduceEEc1n -- ProduceE")
-statements += pii.model("ProduceE -- UnitEScn1")
-statements += pii.model("ProduceE -- AmountERcn1")
+statements += core.model("RecipeE -- ProduceEEc1n -- ProduceE")
+statements += core.model("ProduceE -- UnitEScn1")
+statements += core.model("ProduceE -- AmountERcn1")
 
 # A batch of Produce is both a Recipe and a Produce
 
 # A Specification is realized in an Implementation and verified with a Test
-statements += pii.model("SpecificationE -- ImplementationEEcnn -- ImplementationE")
-statements += pii.model("SpecificationE -- TestEEcnn -- TestE")
+statements += core.model("SpecificationE -- ImplementationEEcnn -- ImplementationE")
+statements += core.model("SpecificationE -- TestEEcnn -- TestE")
 
 # Performing a Test on an Implementation yields a TestResult
-statements += pii.model("TestResultE -- ImplementationEEcn1 -- ImplementationE")
-statements += pii.model("TestResultE -- TestEEcn1 -- TestE")
+statements += core.model("TestResultE -- ImplementationEEcn1 -- ImplementationE")
+statements += core.model("TestResultE -- TestEEcn1 -- TestE")
 
 # A Guide tells you how to use an Appliance 
-statements += pii.model("ApplianceE -- GuideEEcnn -- GuideE")
+statements += core.model("ApplianceE -- GuideEEcnn -- GuideE")
 
 # A version in Git have additional properties.
-statements += pii.model("GitVersionE -- CommitEScn1")
-statements += pii.model("GitVersionE -- DateETcn1")
-statements += pii.model("GitVersionE -- CommentEBcn1")
+statements += core.model("GitVersionE -- CommitEScn1")
+statements += core.model("GitVersionE -- DateETcn1")
+statements += core.model("GitVersionE -- CommentEBcn1")
 
 # Graphical Presentation
-statements += pii.relate(["EntityE", "ShapeSS", "box"])
+statements += core.relate(["EntityE", "ShapeSS", "box"])
 
-statements += pii.relate(["EntityE", "RedSI", 255])
-statements += pii.relate(["EntityE", "GreenSI", 255])
-statements += pii.relate(["EntityE", "BlueSI", 255])
+statements += core.relate(["EntityE", "RedSI", 255])
+statements += core.relate(["EntityE", "GreenSI", 255])
+statements += core.relate(["EntityE", "BlueSI", 255])
 
-statements += pii.relate(["ArtifactE", "RedSI", 128])
-statements += pii.relate(["VersionE", "RedSI", 192])
+statements += core.relate(["ArtifactE", "RedSI", 128])
+statements += core.relate(["VersionE", "RedSI", 192])
 
-statements += pii.relate(["MutableE", "BlueSI", 0])
-statements += pii.relate(["ContainerE", "BlueSI", 64])
-statements += pii.relate(["ConstantE", "BlueSI", 128])
-statements += pii.relate(["EmbeddedE", "BlueSI", 192])
+statements += core.relate(["MutableE", "BlueSI", 0])
+statements += core.relate(["ContainerE", "BlueSI", 64])
+statements += core.relate(["ConstantE", "BlueSI", 128])
+statements += core.relate(["EmbeddedE", "BlueSI", 192])
 
-statements += pii.relate(["SpecificationE", "GreenSI", 128])
-statements += pii.relate(["ImplementationE", "GreenSI", 192])
+statements += core.relate(["SpecificationE", "GreenSI", 128])
+statements += core.relate(["ImplementationE", "GreenSI", 192])
 
-statements += pii.relate(["GitVersionE", "BlueSI", 64])
+statements += core.relate(["GitVersionE", "BlueSI", 64])
 
-pii.execute(statements)
+core.execute(statements)

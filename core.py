@@ -1,7 +1,8 @@
 """
-Product Information Index - Pii Core
+Graph Applications - Core
 
-This files contains the core functionality of Pii.
+This files contains the core functionality that all
+graph applications - like Pii - are built upon.
 
 MIT License
 
@@ -40,7 +41,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "29"
+__version__ = "1"
 __maintainer__ = "Marcus T. Andersson"
 __implements__ = ["R1/v1", "R2/v1"]
 
@@ -373,7 +374,7 @@ memfiles = {"/pii": ("text/html; charset=UTF-8", """
   <head>
     <title>Product Information Index</title>
     <script type="text/javascript" src="vis-network.min.js"></script>
-    <script type="text/javascript" src="pii.js"></script>
+    <script type="text/javascript" src="core.js"></script>
   <head/>
   <body style="height:100%%;">
     <form style="position:fixed; z-index: 1; top: 10px; right: 12px;" action="javascript:void(0);">
