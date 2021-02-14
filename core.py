@@ -36,12 +36,13 @@ import random
 import threading
 import http.server
 import socketserver
+import http.client
 
 __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "1"
+__version__ = "2"
 __maintainer__ = "Marcus T. Andersson"
 __implements__ = ["R1/v1", "R2/v1"]
 
@@ -368,26 +369,7 @@ def entity2serial(e, conn):
 ###
 ### Web application
 
-memfiles = {"/pii": ("text/html; charset=UTF-8", """
-<!DOCTYPE html>
-<html style="height:100%%;">
-  <head>
-    <title>Product Information Index</title>
-    <script type="text/javascript" src="vis-network.min.js"></script>
-    <script type="text/javascript" src="core.js"></script>
-  <head/>
-  <body style="height:100%%;">
-    <form style="position:fixed; z-index: 1; top: 10px; right: 12px;" action="javascript:void(0);">
-      <button id="delete" type="button" style="background-color: lightsteelblue; border-color: lightsteelblue;"
-      	onclick="javascript:delete_selected();" onmouseup="javascript:document.getElementById('delete').blur();"> &#128465; </button>
-      &nbsp; &#65372; &nbsp;
-      &#128269; <input id="search" type="text" oninput="javascript:srch(document.getElementById('search').value);"/>
-    </form>
-    <div id="mynetwork" style="height:100%%;"></div>
-    <script> httpGetAsync('http://localhost:%d/query', parse_relations); </script>
-  </body>
-</html>
-""")}
+memfiles = None
 
 class HttpHandler(http.server.SimpleHTTPRequestHandler):
 	def do_GET(self):
@@ -436,25 +418,24 @@ def webserver(webport):
 	httpd.server_close()
 	print("webserver: closed")
 
-def serve(serial):
+def serve(webport, _memfiles, url):
 	global memfiles, httpd, wss_loop
 
-	webport = random.randint(1025, 9999)
-
-	memfiles["/pii"] = (memfiles["/pii"][0], memfiles["/pii"][1] % webport)
-	memfiles["/query"] = ("text/plain; charset=UTF-8", serial)
-	print(serial)
+	memfiles = _memfiles
 
 	web_thread = threading.Thread(target=webserver, args=(webport, ))
 	web_thread.start()
 
-	url = f"http://localhost:{webport}/pii"
 	print(f"url: {url}")
 	webbrowser.open(url)
 
 	input()
 	print("webserver: stopping")
-	webbrowser.open(url) # Break the wait for connection in the web server
+	# Break the wait for connection in the web server
+	conn = http.client.HTTPConnection("localhost", webport)
+	conn.request("GET", "/")
+	r = conn.getresponse()
+	print(r.status, r.reason)
 	httpd.shutdown()
 
 ###

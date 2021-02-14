@@ -30,7 +30,7 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "2"
+__version__ = "3"
 __maintainer__ = "Marcus T. Andersson"
 
 import core
@@ -500,6 +500,7 @@ core.execute(stmts)
 core.execute(trackRequirements(artifact, mutable, constant))
 
 core.execute(trackPythonFile("./core.py"))
+core.execute(trackPythonFile("./pii.py"))
 core.execute(trackPythonFile("./pii_model.py"))
 core.execute(trackPythonFile("./pii_tracker.py"))
 core.execute(trackPythonFile("./q_files.py"))
@@ -509,6 +510,7 @@ core.execute(trackPythonFile("./setversions.py"))
 core.execute(trackJavascriptFile("./core.js"))
 
 core.execute(trackGitVersions("./core.py", "core/python"))
+core.execute(trackGitVersions("./pii.py", "pii/python"))
 core.execute(trackGitVersions("./pii_model.py", "pii_model/python"))
 core.execute(trackGitVersions("./pii_tracker.py", "pii_tracker/python"))
 core.execute(trackGitVersions("./q_files.py", "q_files/python"))
@@ -517,9 +519,11 @@ core.execute(trackGitVersions("./q_no_implementation.py", "q_no_implementation/p
 core.execute(trackGitVersions("./setversions.py", "setversions/python"))
 core.execute(trackGitVersions("./core.js", "core/javascript"))
 
-piipy = findArtifact("core/python")
-piijs = findArtifact("core/javascript")
+corepy = findArtifact("core/python")
+piipy = findArtifact("pii/python")
+corejs = findArtifact("core/javascript")
+core.execute(addRoles(corepy, ["ModuleE", "IntegratedE"]))
 core.execute(addRoles(piipy, ["ModuleE", "IntegratedE"]))
-core.execute(addRoles(piijs, ["ModuleE", "IntegratedE"]))
-core.execute(link(piipy, "ModuleEE", piijs))
-core.execute(link(piijs, "ModuleEE", piipy))
+core.execute(addRoles(corejs, ["ModuleE", "IntegratedE"]))
+core.execute(link(piipy, "ModuleEE", corejs))
+core.execute(link(corejs, "ModuleEE", piipy))

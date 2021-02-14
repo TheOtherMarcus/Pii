@@ -31,11 +31,12 @@ __author__ = "Marcus T. Andersson"
 __copyright__ = "Copyright 2020, Marcus T. Andersson"
 __credits__ = ["Marcus T. Andersson"]
 __license__ = "MIT"
-__version__ = "2"
+__version__ = "3"
 __maintainer__ = "Marcus T. Andersson"
 __implements__ = ["R5/v1"]
 
 import core
+import pii
 
 serial = ""
 
@@ -47,4 +48,4 @@ for row in c:
 	serial += core.entity2serial(row[0], core.conn)
 c.close()
 
-core.serve(serial)
+pii.serve(serial)
